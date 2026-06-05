@@ -58,7 +58,7 @@ const router = createRouter({
             permissions: ['journal.view'],
             apiEndpoint: '/journals',
             primaryTabId: '/accounting/journals',
-            primaryTabLabel: 'Journal Entries',
+            primaryTabLabel: 'Jurnal Umum',
             primaryTabClosable: true,
           },
         },
@@ -71,7 +71,7 @@ const router = createRouter({
             permissions: ['coa.view'],
             apiEndpoint: '/master-data/chart-of-accounts',
             primaryTabId: '/accounting/chart-of-accounts',
-            primaryTabLabel: 'Chart of Accounts',
+            primaryTabLabel: 'Daftar Akun',
             primaryTabClosable: true,
           },
         },
@@ -83,14 +83,21 @@ const router = createRouter({
             permissions: ['fiscal_year.view'],
             apiEndpoint: '/accounting/fiscal-year/status',
             primaryTabId: '/accounting/fiscal-closing',
-            primaryTabLabel: 'Fiscal Closing',
+            primaryTabLabel: 'Tutup Buku',
             primaryTabClosable: true,
           },
         },
         {
           path: 'accounting/period-locks',
           name: 'period-locks',
-          redirect: '/accounting/fiscal-closing',
+          component: () => import('@/pages/workspace/RouteIntent.vue'),
+          meta: {
+            permissions: ['fiscal_year.view'],
+            apiEndpoint: '/accounting/fiscal-year/status',
+            primaryTabId: '/accounting/period-locks',
+            primaryTabLabel: 'Kunci Periode',
+            primaryTabClosable: true,
+          },
         },
         {
           path: 'reports/general-ledger',
@@ -100,7 +107,7 @@ const router = createRouter({
             permissions: ['reports.view'],
             apiEndpoint: '/reports/general-ledger',
             primaryTabId: '/reports/general-ledger',
-            primaryTabLabel: 'General Ledger',
+            primaryTabLabel: 'Buku Besar',
             primaryTabClosable: true,
           },
         },
@@ -117,7 +124,7 @@ const router = createRouter({
             permissions: ['reports.view'],
             apiEndpoint: '/reports/trial-balance',
             primaryTabId: '/accounting/trial-balance',
-            primaryTabLabel: 'Trial Balance',
+            primaryTabLabel: 'Neraca Saldo',
             primaryTabClosable: true,
           },
         },
@@ -129,7 +136,7 @@ const router = createRouter({
             permissions: ['cash_bank.view'],
             apiEndpoint: '/cash-bank/reports/account-statement',
             primaryTabId: '/cash-bank/account-statement',
-            primaryTabLabel: 'Account Statement',
+            primaryTabLabel: 'Mutasi Rekening',
             primaryTabClosable: true,
           },
         },
@@ -141,7 +148,7 @@ const router = createRouter({
             permissions: ['settings.company.view'],
             apiEndpoint: '/settings/company',
             primaryTabId: '/settings/company',
-            primaryTabLabel: 'Company Settings',
+            primaryTabLabel: 'Pengaturan Perusahaan',
             primaryTabClosable: true,
           },
         },
@@ -153,7 +160,7 @@ const router = createRouter({
             permissions: ['reports.view'],
             apiEndpoint: '/reports/profit-loss',
             primaryTabId: '/reports/profit-loss',
-            primaryTabLabel: 'Profit & Loss',
+            primaryTabLabel: 'Laporan Laba Rugi',
             primaryTabClosable: true,
           },
         },
@@ -165,7 +172,7 @@ const router = createRouter({
             permissions: ['reports.view'],
             apiEndpoint: '/reports/balance-sheet',
             primaryTabId: '/reports/balance-sheet',
-            primaryTabLabel: 'Balance Sheet',
+            primaryTabLabel: 'Laporan Posisi Keuangan / Neraca',
             primaryTabClosable: true,
           },
         },
@@ -177,7 +184,7 @@ const router = createRouter({
             permissions: ['reports.view'],
             apiEndpoint: '/reports/cash-flow',
             primaryTabId: '/reports/cash-flow',
-            primaryTabLabel: 'Cash Flow',
+            primaryTabLabel: 'Laporan Arus Kas',
             primaryTabClosable: true,
           },
         },
@@ -189,7 +196,7 @@ const router = createRouter({
             permissions: ['reports.view'],
             apiEndpoint: '/reports/financial-summary',
             primaryTabId: '/reports/financial-summary',
-            primaryTabLabel: 'Financial Summary',
+            primaryTabLabel: 'Ringkasan Keuangan',
             primaryTabClosable: true,
           },
         },
@@ -254,7 +261,7 @@ const router = createRouter({
           meta: {
             permissions: ['access.users.view'],
             primaryTabId: '/access/company-users',
-            primaryTabLabel: 'Company Users',
+            primaryTabLabel: 'Pengguna',
             primaryTabClosable: true,
           },
         },
@@ -281,7 +288,7 @@ const router = createRouter({
           meta: {
             permissions: ['access.permissions.view'],
             primaryTabId: '/access/permissions',
-            primaryTabLabel: 'Permission Matrix',
+            primaryTabLabel: 'Hak Akses Pengguna',
             primaryTabClosable: true,
           },
         },
@@ -292,7 +299,7 @@ const router = createRouter({
           meta: {
             permissions: ['access.roles.view'],
             primaryTabId: '/access/roles',
-            primaryTabLabel: 'Roles',
+            primaryTabLabel: 'Peran & Hak Akses',
             primaryTabClosable: true,
           },
         },
@@ -314,7 +321,7 @@ const router = createRouter({
           meta: {
             permissions: ['access.invitations.view'],
             primaryTabId: '/access/invitations',
-            primaryTabLabel: 'Invitations',
+            primaryTabLabel: 'Undangan Pengguna',
             primaryTabClosable: true,
           },
         },
@@ -325,7 +332,7 @@ const router = createRouter({
           meta: {
             permissions: ['access.audit.view'],
             primaryTabId: '/access/audit',
-            primaryTabLabel: 'Access Audit',
+            primaryTabLabel: 'Audit Akses',
             primaryTabClosable: true,
           },
         },
@@ -364,7 +371,8 @@ router.beforeEach(async (to) => {
 
   const isPublic = to.matched.some((r) => Boolean(r.meta.public))
   const guestOnly = to.matched.some((r) => Boolean(r.meta.guestOnly))
-  const requiresAuth = to.matched.some((r) => Boolean(r.meta.requiresAuth)) || (!isPublic && to.path !== '/login')
+  const requiresAuth =
+    to.matched.some((r) => Boolean(r.meta.requiresAuth)) || (!isPublic && to.path !== '/login')
   const requiresCompany = to.matched.some((r) => Boolean(r.meta.requiresCompany))
 
   if (requiresAuth && !auth.isAuthenticated) {
@@ -379,9 +387,13 @@ router.beforeEach(async (to) => {
     return { path: '/select-company', query: { next: to.fullPath } }
   }
 
-  const requiredPermissions = to.matched.flatMap((r) => (r.meta.permissions as string[] | undefined) ?? [])
+  const requiredPermissions = to.matched.flatMap(
+    (r) => (r.meta.permissions as string[] | undefined) ?? [],
+  )
   if (requiredPermissions.length > 0) {
-    const allowed = auth.permissions.includes('*') || requiredPermissions.every((p) => auth.permissions.includes(p))
+    const allowed =
+      auth.permissions.includes('*') ||
+      requiredPermissions.every((p) => auth.permissions.includes(p))
     if (!allowed) {
       // Basic deny: redirect to dashboard (or login if not authed)
       return auth.isAuthenticated && to.path !== '/dashboard' ? { path: '/dashboard' } : true

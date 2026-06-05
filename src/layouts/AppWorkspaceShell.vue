@@ -7,7 +7,13 @@ import AppSidebarFull from '@/components/layout/AppSidebarFull.vue'
 import AppTopbar from '@/components/layout/AppTopbar.vue'
 import SecondaryTabsBar from '@/components/navigation/SecondaryTabsBar.vue'
 import UnsavedChangesDialog from '@/components/dialog/UnsavedChangesDialog.vue'
-import { sidebarMenuGroups, type SidebarMenuGroup, type SidebarMenuItem } from '@/navigation/sidebar'
+import {
+  isSidebarMenuSection,
+  sidebarMenuGroups,
+  type SidebarMenuGroup,
+  type SidebarMenuItem,
+  type SidebarMenuNode,
+} from '@/navigation/sidebar'
 import WorkspaceContentArea from '@/workspace/WorkspaceContentArea.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useCompanyStore } from '@/stores/companyStore'
@@ -25,11 +31,31 @@ function canAccessItem(item: SidebarMenuItem) {
   return auth.permissions.includes('*') || auth.permissions.includes(item.permission)
 }
 
+function filterMenuNode(node: SidebarMenuNode): SidebarMenuNode | null {
+  if (!isSidebarMenuSection(node)) return canAccessItem(node) ? node : null
+
+  const children = node.children.filter(canAccessItem)
+  return children.length > 0 ? { ...node, children } : null
+}
+
+function moduleHasHref(module: SidebarMenuGroup, href: string) {
+  return (
+    module.href === href ||
+    module.items.some((node) =>
+      isSidebarMenuSection(node)
+        ? node.children.some((child) => child.href === href)
+        : node.href === href,
+    )
+  )
+}
+
 const modules = computed<SidebarMenuGroup[]>(() =>
   sidebarMenuGroups
     .map((module) => ({
       ...module,
-      items: module.items.filter(canAccessItem),
+      items: module.items
+        .map(filterMenuNode)
+        .filter((node): node is SidebarMenuNode => node != null),
     }))
     .filter((module) => module.key === 'dashboard' || module.items.length > 0),
 )
@@ -48,7 +74,7 @@ watch(
   activePrimaryId,
   (path) => {
     tabs.ensureListSecondaryTab(path)
-    const module = modules.value.find((item) => item.href === path || item.items.some((child) => child.href === path))
+    const module = modules.value.find((item) => moduleHasHref(item, path))
     if (module) activeModuleKey.value = module.key
   },
   { immediate: true },
@@ -57,7 +83,9 @@ watch(
 watch(
   () => route.fullPath,
   () => {
-    const primaryId = route.meta.primaryTabUseRoutePath ? route.path : (route.meta.primaryTabId as string | undefined)
+    const primaryId = route.meta.primaryTabUseRoutePath
+      ? route.path
+      : (route.meta.primaryTabId as string | undefined)
     const primaryLabel = route.meta.primaryTabLabel as string | undefined
     if (!primaryId || !primaryLabel) return
 
@@ -102,9 +130,12 @@ async function onOpenItem(item: SidebarMenuItem) {
 
 const secondaryTabs = computed(() => tabs.secondaryTabsByPrimaryId[activePrimaryId.value] ?? [])
 const activeSecondaryId = computed(
-  () => tabs.activeSecondaryTabIdByPrimaryId[activePrimaryId.value] ?? `${activePrimaryId.value}::list`,
+  () =>
+    tabs.activeSecondaryTabIdByPrimaryId[activePrimaryId.value] ?? `${activePrimaryId.value}::list`,
 )
-const showSecondary = computed(() => activePrimaryId.value !== '/dashboard' && secondaryTabs.value.length > 0)
+const showSecondary = computed(
+  () => activePrimaryId.value !== '/dashboard' && secondaryTabs.value.length > 0,
+)
 const attachedSecondaryWorkspace = computed(() => showSecondary.value)
 const closePendingSecondaryId = ref<string | null>(null)
 const unsavedOpen = computed(() => closePendingSecondaryId.value != null)

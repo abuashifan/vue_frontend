@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { Building2, ChevronDown, Lock, PanelLeftClose } from 'lucide-vue-next'
 
-import type { SidebarMenuGroup, SidebarMenuItem } from '@/navigation/sidebar'
+import {
+  isSidebarMenuSection,
+  type SidebarMenuGroup,
+  type SidebarMenuItem,
+} from '@/navigation/sidebar'
 import { cn } from '@/utils/cn'
 
 defineProps<{
@@ -20,7 +24,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <aside class="app-viewport tablet-sidebar-full hidden w-[304px] shrink-0 flex-col bg-[#06131e] text-white shadow-2xl shadow-slate-950/30 lg:flex">
+  <aside
+    class="app-viewport tablet-sidebar-full hidden w-[304px] shrink-0 flex-col bg-[#06131e] text-white shadow-2xl shadow-slate-950/30 lg:flex"
+  >
     <div class="flex h-20 items-center justify-between border-b border-white/10 px-5">
       <div class="flex items-center gap-3">
         <div class="grid h-11 w-11 place-items-center rounded-2xl bg-[#b4db24] text-[#06131e]">
@@ -76,23 +82,50 @@ const emit = defineEmits<{
             />
           </button>
 
-          <div v-if="activeModuleKey === module.key && module.items.length > 0" class="mt-2 space-y-1 rounded-2xl bg-white/5 p-2">
-            <button
-              v-for="item in module.items"
-              :key="item.id"
-              type="button"
-              :class="
-                cn(
-                  'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-white/10 hover:text-white',
-                  activeHref === item.href ? 'bg-white/10 font-bold text-white' : 'text-white/65',
-                )
-              "
-              :aria-current="activeHref === item.href ? 'page' : undefined"
-              @click="emit('openItem', item)"
-            >
-              <span class="h-1.5 w-1.5 rounded-full bg-[#b4db24]" />
-              {{ item.label }}
-            </button>
+          <div
+            v-if="activeModuleKey === module.key && module.items.length > 0"
+            class="mt-2 space-y-1 rounded-2xl bg-white/5 p-2"
+          >
+            <template v-for="node in module.items" :key="node.id">
+              <div v-if="isSidebarMenuSection(node)" class="space-y-1 pt-2 first:pt-0">
+                <p class="px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white/40">
+                  {{ node.label }}
+                </p>
+                <button
+                  v-for="item in node.children"
+                  :key="item.id"
+                  type="button"
+                  :class="
+                    cn(
+                      'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-white/10 hover:text-white',
+                      activeHref === item.href
+                        ? 'bg-white/10 font-bold text-white'
+                        : 'text-white/65',
+                    )
+                  "
+                  :aria-current="activeHref === item.href ? 'page' : undefined"
+                  @click="emit('openItem', item)"
+                >
+                  <span class="h-1.5 w-1.5 rounded-full bg-[#b4db24]" />
+                  {{ item.label }}
+                </button>
+              </div>
+              <button
+                v-else
+                type="button"
+                :class="
+                  cn(
+                    'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-white/10 hover:text-white',
+                    activeHref === node.href ? 'bg-white/10 font-bold text-white' : 'text-white/65',
+                  )
+                "
+                :aria-current="activeHref === node.href ? 'page' : undefined"
+                @click="emit('openItem', node)"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-[#b4db24]" />
+                {{ node.label }}
+              </button>
+            </template>
           </div>
         </div>
       </div>
