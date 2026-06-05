@@ -120,6 +120,12 @@ async function onCollapsedModule(moduleKey: string) {
     await router.push('/dashboard')
     return
   }
+
+  if (moduleKey === 'reports') {
+    floatingModuleKey.value = null
+    return
+  }
+
   floatingModuleKey.value = moduleKey
 }
 
