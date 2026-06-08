@@ -13,11 +13,13 @@ const props = withDefaults(
     placeholder?: string
     options: SelectOption[]
     disabled?: boolean
+    required?: boolean
   }>(),
   {
     label: '',
-    placeholder: 'Select…',
+    placeholder: 'Pilih...',
     disabled: false,
+    required: false,
   },
 )
 
@@ -30,7 +32,7 @@ const model = computed({
 </script>
 
 <template>
-  <FormField :name="name" :label="label">
+  <FormField :name="name" :label="label" :required="required">
     <select
       v-model="model"
       :disabled="disabled"

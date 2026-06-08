@@ -12,6 +12,7 @@ const props = withDefaults(
     type?: string
     disabled?: boolean
     readonly?: boolean
+    required?: boolean
   }>(),
   {
     label: '',
@@ -19,6 +20,7 @@ const props = withDefaults(
     type: 'text',
     disabled: false,
     readonly: false,
+    required: false,
   },
 )
 
@@ -31,7 +33,7 @@ const model = computed({
 </script>
 
 <template>
-  <FormField :name="name" :label="label">
+  <FormField :name="name" :label="label" :required="required">
     <input
       v-model="model"
       :type="type"

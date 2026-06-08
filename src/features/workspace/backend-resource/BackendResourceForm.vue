@@ -21,6 +21,7 @@ import FormPageShell from '@/components/form/FormPageShell.vue'
 import FormSection from '@/components/form/FormSection.vue'
 import FormSelect from '@/components/form/FormSelect.vue'
 import FormStatusBadge from '@/components/form/FormStatusBadge.vue'
+import FormSwitch from '@/components/form/FormSwitch.vue'
 import FormTextarea from '@/components/form/FormTextarea.vue'
 import FormTextInput from '@/components/form/FormTextInput.vue'
 import FormValidationSummary from '@/components/form/FormValidationSummary.vue'
@@ -98,6 +99,7 @@ const loadedEntityId = ref<string | number | null>(null)
 const voidDialogOpen = ref(false)
 const pendingVoidAction = ref<FormActionConfig | null>(null)
 const closeConfirmOpen = ref(false)
+const auditOpen = ref(false)
 const stockAdjustmentLookups = ref<StockAdjustmentLookups>({
   products: [],
   warehouses: [],
@@ -112,12 +114,23 @@ const companySettingsLoadedForCompany = ref<string | number | null>(null)
 const remoteSelectOptions = ref<Record<string, { label: string; value: string }[]>>({})
 
 const readonly = computed(() => props.tab.mode === 'detail' || ['posted', 'void', 'voided', 'cancelled', 'closed', 'finalized'].includes(status.value))
+const resourceLabel = computed(() => props.config.localizedTitle ?? props.config.title)
+const localizedModeLabel = computed(() => {
+  if (props.tab.mode === 'create') return 'Tambah'
+  if (props.tab.mode === 'edit') return 'Edit'
+  return 'Detail'
+})
 const title = computed(() => {
+  if (props.config.layout === 'compact') return `${localizedModeLabel.value} ${resourceLabel.value}`
   if (props.tab.mode === 'create') return `Create ${props.config.title}`
   if (props.tab.mode === 'edit') return `Edit ${props.config.title}`
   return `${props.config.title} Detail`
 })
 const numberText = computed(() => props.config.numberKeys.map((key) => form.values[key]).find((value) => value != null && String(value) !== '') ?? props.tab.entityNumber ?? 'AUTO')
+const subtitle = computed(() => {
+  if (props.config.layout === 'compact') return `No. ${resourceLabel.value} ${numberText.value}`
+  return `Document ${numberText.value}`
+})
 const statusFieldKey = computed(() => props.config.statusKey ?? 'status')
 const rawStatus = computed(() => form.values[statusFieldKey.value])
 const hasBackendStatus = computed(() => rawStatus.value != null && String(rawStatus.value) !== '')
@@ -151,6 +164,9 @@ const journalDifference = computed(() => totalDebit.value - totalCredit.value)
 const journalBalanced = computed(() => Math.abs(journalDifference.value) < 0.01)
 const isJournal = computed(() => props.config.endpoint === '/journals')
 const isStockAdjustment = computed(() => props.config.endpoint === '/inventory/stock-adjustments')
+const compactForm = computed(() => props.config.layout === 'compact')
+const isMasterData = computed(() => props.config.endpoint.startsWith('/master-data/') || props.config.endpoint.startsWith('/settings/'))
+const usesTransactionWorkflow = computed(() => Boolean(props.config.lineItems || props.config.actions.length || isJournal.value || isStockAdjustment.value))
 const internalTab = ref<'detail' | 'history'>('detail')
 const isProductDetail = computed(() =>
   props.tab.mode === 'detail'
@@ -161,7 +177,18 @@ const inventoryEntityName = computed(() => String(form.values.product_name ?? nu
 const canViewInventoryHistory = computed(() => can('inventory.reports.view'))
 const showFooterActions = computed(() => !isProductDetail.value)
 const showHeaderActions = computed(() => !showFooterActions.value)
+const showTopActions = computed(() => showHeaderActions.value)
 const showSummary = computed(() => !isProductDetail.value && Boolean(props.config.lineItems))
+const bottomActionForm = computed(() => compactForm.value || Boolean(props.config.hideAudit))
+const auditKeys = computed(() => {
+  if (isMasterData.value) return ['created_at', 'updated_at']
+  return ['created_at', 'updated_at', 'approved_at', 'posted_at', 'voided_at']
+})
+const activeStatusLabel = computed(() => {
+  if (!Object.prototype.hasOwnProperty.call(form.values, 'is_active')) return ''
+  return form.values.is_active === false ? 'Nonaktif' : 'Aktif'
+})
+const saveStateLabel = computed(() => (dirty.value ? 'Ada perubahan' : 'Tersimpan'))
 const dateFieldKeys = computed(() =>
   props.config.sections.flatMap((section) => section.fields.filter((field) => field.kind === 'date').map((field) => field.key)),
 )
@@ -170,7 +197,10 @@ const autoPostTransactions = computed(() => companyWorkflowSettings.value?.auto_
 const workflowMode = computed(() => companyWorkflowSettings.value?.transaction_workflow_mode ?? null)
 const allowVoidTransactions = computed(() => companyWorkflowSettings.value?.allow_void_transactions ?? true)
 const autoPostOnCreate = computed(() =>
-  !approvalEnabled.value
+  usesTransactionWorkflow.value
+  && !props.config.endpoint.startsWith('/master-data/')
+  && !props.config.endpoint.startsWith('/settings/')
+  && !approvalEnabled.value
   && autoPostTransactions.value
   && workflowMode.value === 'simple_auto_post',
 )
@@ -216,6 +246,36 @@ function visibleAction(action: FormActionConfig) {
 
 function fieldReadonly(field: FormFieldConfig) {
   return readonly.value || Boolean(field.readonly)
+}
+
+function auditLabel(key: string) {
+  const labels: Record<string, string> = {
+    created_at: 'Dibuat',
+    updated_at: 'Diubah',
+    approved_at: 'Disetujui',
+    posted_at: 'Diposting',
+    voided_at: 'Dibatalkan',
+  }
+  return labels[key] ?? key.replaceAll('_', ' ')
+}
+
+function sectionCols(section: ResourceFormConfig['sections'][number]): 1 | 2 | 3 | 4 {
+  return section.cols ?? (compactForm.value ? 3 : 2)
+}
+
+function spanClass(span?: 1 | 2 | 3 | 4) {
+  if (span === 2) return 'md:col-span-2'
+  if (span === 3) return 'md:col-span-3'
+  if (span === 4) return 'md:col-span-4'
+  return ''
+}
+
+function fieldWrapperClass(field: FormFieldConfig) {
+  return [
+    'min-w-0',
+    spanClass(field.span),
+    field.kind === 'textarea' ? 'compact-form-field--textarea' : '',
+  ]
 }
 
 function optionLabel(row: Record<string, unknown>, key?: string) {
@@ -313,6 +373,7 @@ watch(
   () => secondaryTabId.value,
   () => {
     internalTab.value = 'detail'
+    auditOpen.value = props.tab.mode === 'detail' && !compactForm.value
     serverErrors.value = []
     loadedEntityId.value = null
     void loadEntity()
@@ -556,22 +617,47 @@ function saveAndCloseFromDialog() {
 </script>
 
 <template>
-  <FormPageShell>
+  <FormPageShell :class="bottomActionForm ? 'h-full' : ''">
     <FormLoadingState v-if="loading" />
     <FormErrorState v-else-if="error" :message="error" @retry="loadEntity" />
-    <form v-else class="min-w-0 space-y-5" @submit.prevent="save(false)">
-      <FormHeader :title="title" :subtitle="`Document ${numberText}`">
+    <form
+      v-else
+      :class="['min-w-0', compactForm ? 'compact-resource-form space-y-3' : 'space-y-5', bottomActionForm ? 'bottom-action-resource-form' : '']"
+      @submit.prevent="save(false)"
+    >
+      <FormHeader :title="title" :subtitle="subtitle">
         <template #meta>
           <div v-if="!isProductDetail" class="mt-3 flex flex-wrap items-center gap-2">
-            <FormStatusBadge v-if="showStatusBadge" :status="status" />
-            <span class="rounded-xl bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">{{ tab.mode }}</span>
-            <FormDirtyIndicator :dirty="dirty" />
+            <template v-if="compactForm">
+              <span
+                v-if="activeStatusLabel"
+                class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-bold ring-1"
+                :class="form.values.is_active === false ? 'bg-slate-50 text-slate-600 ring-slate-200' : 'bg-emerald-50 text-emerald-800 ring-emerald-200'"
+              >
+                <span class="h-1.5 w-1.5 rounded-full" :class="form.values.is_active === false ? 'bg-slate-400' : 'bg-emerald-500'" />
+                {{ activeStatusLabel }}
+              </span>
+              <span
+                class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-bold ring-1"
+                :class="dirty ? 'bg-amber-50 text-amber-800 ring-amber-200' : 'bg-sky-50 text-sky-800 ring-sky-200'"
+              >
+                <span class="h-1.5 w-1.5 rounded-full" :class="dirty ? 'bg-amber-500' : 'bg-sky-500'" />
+                {{ saveStateLabel }}
+              </span>
+            </template>
+            <template v-else>
+              <FormStatusBadge v-if="showStatusBadge" :status="status" />
+              <span class="rounded-xl bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">{{ tab.mode }}</span>
+              <FormDirtyIndicator :dirty="dirty" />
+            </template>
           </div>
         </template>
-        <template v-if="showHeaderActions" #actions>
-          <BaseButton variant="secondary" type="button" @click="close">Cancel</BaseButton>
-          <BaseButton v-if="canSave" variant="secondary" type="button" :loading="saving" @click="save(true)">Save & Close</BaseButton>
-          <BaseButton v-if="canSave" variant="primary" type="submit" :loading="saving">Save</BaseButton>
+        <template v-if="showTopActions" #actions>
+          <div :class="compactForm ? 'hidden items-center gap-2 xl:flex' : 'flex flex-wrap items-center justify-start gap-2 sm:justify-end'">
+            <BaseButton variant="secondary" type="button" @click="close">{{ compactForm ? 'Batal' : 'Cancel' }}</BaseButton>
+            <BaseButton v-if="canSave" variant="secondary" type="button" :loading="saving" @click="save(true)">{{ compactForm ? 'Simpan & Tutup' : 'Save & Close' }}</BaseButton>
+            <BaseButton v-if="canSave" variant="primary" type="submit" :loading="saving">{{ compactForm ? 'Simpan' : 'Save' }}</BaseButton>
+          </div>
         </template>
       </FormHeader>
 
@@ -605,7 +691,14 @@ function saveAndCloseFromDialog() {
         </button>
       </nav>
 
-      <div v-show="!isProductDetail || internalTab === 'detail'" class="min-w-0 space-y-5">
+      <div
+        v-show="!isProductDetail || internalTab === 'detail'"
+        :class="[
+          'min-w-0',
+          compactForm ? 'space-y-3' : 'space-y-5',
+          bottomActionForm ? 'bottom-action-resource-body' : '',
+        ]"
+      >
         <FormSection
           v-for="section in config.sections"
           :key="section.title"
@@ -613,70 +706,87 @@ function saveAndCloseFromDialog() {
           :description="section.description"
           :plain="/header/i.test(section.title)"
         >
-          <FormGrid :cols="2">
+          <FormGrid :cols="sectionCols(section)">
             <template v-for="field in section.fields" :key="field.key">
-              <FormTextarea
-                v-if="field.kind === 'textarea'"
-                :name="field.key"
-                :label="field.label"
-                :placeholder="field.placeholder"
-                :disabled="fieldReadonly(field)"
-              />
-              <FormDateInput
-                v-else-if="field.kind === 'date'"
-                :name="field.key"
-                :label="field.label"
-                :disabled="fieldReadonly(field)"
-              />
-              <div v-else-if="isStockAdjustment && field.key === 'warehouse_id'" class="space-y-1">
-                <TransactionSearchableSelect
+              <div :class="fieldWrapperClass(field)">
+                <FormTextarea
+                  v-if="field.kind === 'textarea'"
                   :name="field.key"
-                  :label="'Warehouse'"
-                  :options="stockAdjustmentLookups.warehouses"
-                  option-value="id"
-                  option-label="label"
-                  placeholder="Select warehouse..."
-                  empty-text="Warehouse tidak ditemukan"
+                  :label="field.label"
+                  :placeholder="field.placeholder"
                   :disabled="fieldReadonly(field)"
-                  selected-font-weight="medium"
-                  option-two-line
+                  :rows="field.rows ?? (compactForm ? 2 : 3)"
+                  :required="field.required"
                 />
-                <FormErrorMessage :name="field.key" />
+                <FormDateInput
+                  v-else-if="field.kind === 'date'"
+                  :name="field.key"
+                  :label="field.label"
+                  :disabled="fieldReadonly(field)"
+                  :compact="compactForm"
+                  :required="field.required"
+                />
+                <div v-else-if="isStockAdjustment && field.key === 'warehouse_id'" class="space-y-1">
+                  <TransactionSearchableSelect
+                    :name="field.key"
+                    :label="'Warehouse'"
+                    :options="stockAdjustmentLookups.warehouses"
+                    option-value="id"
+                    option-label="label"
+                    placeholder="Select warehouse..."
+                    empty-text="Warehouse tidak ditemukan"
+                    :disabled="fieldReadonly(field)"
+                    selected-font-weight="medium"
+                    option-two-line
+                  />
+                  <FormErrorMessage :name="field.key" />
+                </div>
+                <FormNumberInput
+                  v-else-if="field.kind === 'number'"
+                  :name="field.key"
+                  :label="field.label"
+                  :placeholder="field.placeholder"
+                  :disabled="fieldReadonly(field)"
+                  :required="field.required"
+                />
+                <FormMoneyInput
+                  v-else-if="field.kind === 'money'"
+                  :name="field.key"
+                  :label="field.label"
+                  :placeholder="field.placeholder"
+                  :disabled="fieldReadonly(field)"
+                  :required="field.required"
+                />
+                <FormSelect
+                  v-else-if="field.kind === 'select'"
+                  :name="field.key"
+                  :label="field.label"
+                  :placeholder="compactForm ? 'Pilih...' : undefined"
+                  :options="field.remoteOptions ? (remoteSelectOptions[field.key] ?? []) : (field.options ?? [])"
+                  :disabled="fieldReadonly(field)"
+                  :required="field.required"
+                />
+                <FormSwitch
+                  v-else-if="compactForm && field.kind === 'checkbox' && field.key === 'is_active'"
+                  :name="field.key"
+                  :label="field.label"
+                  :disabled="fieldReadonly(field)"
+                />
+                <FormCheckbox
+                  v-else-if="field.kind === 'checkbox'"
+                  :name="field.key"
+                  :label="field.label"
+                  :disabled="fieldReadonly(field)"
+                />
+                <FormTextInput
+                  v-else
+                  :name="field.key"
+                  :label="field.label"
+                  :placeholder="field.placeholder"
+                  :readonly="fieldReadonly(field)"
+                  :required="field.required"
+                />
               </div>
-              <FormNumberInput
-                v-else-if="field.kind === 'number'"
-                :name="field.key"
-                :label="field.label"
-                :placeholder="field.placeholder"
-                :disabled="fieldReadonly(field)"
-              />
-              <FormMoneyInput
-                v-else-if="field.kind === 'money'"
-                :name="field.key"
-                :label="field.label"
-                :placeholder="field.placeholder"
-                :disabled="fieldReadonly(field)"
-              />
-              <FormSelect
-                v-else-if="field.kind === 'select'"
-                :name="field.key"
-                :label="field.label"
-                :options="field.remoteOptions ? (remoteSelectOptions[field.key] ?? []) : (field.options ?? [])"
-                :disabled="fieldReadonly(field)"
-              />
-              <FormCheckbox
-                v-else-if="field.kind === 'checkbox'"
-                :name="field.key"
-                :label="field.label"
-                :disabled="fieldReadonly(field)"
-              />
-              <FormTextInput
-                v-else
-                :name="field.key"
-                :label="field.label"
-                :placeholder="field.placeholder"
-                :readonly="fieldReadonly(field)"
-              />
             </template>
           </FormGrid>
         </FormSection>
@@ -751,17 +861,25 @@ function saveAndCloseFromDialog() {
           </div>
         </FormSection>
 
-        <FormSection v-if="tab.mode !== 'create' && !isProductDetail" title="Audit / Status">
-          <div class="grid gap-3 text-sm sm:grid-cols-3">
-            <div v-for="key in ['created_at', 'updated_at', 'approved_at', 'posted_at', 'voided_at']" :key="key" class="rounded-2xl bg-slate-50 p-3">
-              <p class="text-xs font-black uppercase text-slate-500">{{ key.replaceAll('_', ' ') }}</p>
-              <p class="mt-1 font-bold text-slate-700">{{ form.values[key] || '-' }}</p>
+        <FormSection v-if="tab.mode !== 'create' && !isProductDetail && !compactForm && !config.hideAudit" title="">
+          <button
+            type="button"
+            class="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            @click="auditOpen = !auditOpen"
+          >
+            <span>Audit / Status</span>
+            <span class="text-xs text-slate-500">{{ auditOpen ? 'Sembunyikan' : 'Tampilkan' }}</span>
+          </button>
+          <div v-if="auditOpen" class="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <div v-for="key in auditKeys" :key="key" class="rounded-xl bg-slate-50 p-3">
+              <p class="text-xs font-black uppercase text-slate-500">{{ auditLabel(key) }}</p>
+              <p class="mt-1 break-words font-bold text-slate-700">{{ form.values[key] || '-' }}</p>
             </div>
           </div>
         </FormSection>
 
-        <FormActionBar v-if="showFooterActions">
-          <BaseButton variant="secondary" type="button" @click="close">Cancel</BaseButton>
+        <FormActionBar v-if="showFooterActions" :class="bottomActionForm ? 'bottom-action-resource-action-bar' : ''">
+          <BaseButton variant="secondary" type="button" @click="close">{{ compactForm ? 'Batal' : 'Cancel' }}</BaseButton>
           <BaseButton
             v-for="action in config.actions.filter(visibleAction)"
             :key="action.key"
@@ -772,8 +890,8 @@ function saveAndCloseFromDialog() {
           >
             {{ action.label }}
           </BaseButton>
-          <BaseButton v-if="canSave" variant="secondary" type="button" :loading="saving" @click="save(true)">Save & Close</BaseButton>
-          <BaseButton v-if="canSave" variant="primary" type="submit" :loading="saving">Save</BaseButton>
+          <BaseButton v-if="canSave" variant="secondary" type="button" :loading="saving" @click="save(true)">{{ compactForm ? 'Simpan & Tutup' : 'Save & Close' }}</BaseButton>
+          <BaseButton v-if="canSave" variant="primary" type="submit" :loading="saving">{{ compactForm ? 'Simpan' : 'Save' }}</BaseButton>
         </FormActionBar>
       </div>
 

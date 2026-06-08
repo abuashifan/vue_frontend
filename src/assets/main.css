@@ -50,6 +50,142 @@ tbody tr:hover .workspace-table-action-cell {
   background: rgb(248 250 252 / 0.7);
 }
 
+.compact-resource-form > :not([hidden]) ~ :not([hidden]),
+.compact-resource-form .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem;
+}
+
+.compact-resource-form .tablet-form-card {
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.compact-resource-form .tablet-form-card > header {
+  margin-bottom: 8px;
+}
+
+.compact-resource-form .tablet-form-card h2 {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.compact-resource-form .tablet-form-gap {
+  gap: 8px 12px;
+}
+
+.compact-resource-form label.block {
+  display: grid;
+  grid-template-columns: minmax(78px, 96px) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+}
+
+.compact-resource-form label.block > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0;
+}
+
+.compact-resource-form label.block > div:first-child {
+  min-width: 0;
+}
+
+.compact-resource-form label.block > :nth-child(2) {
+  grid-column: 2;
+}
+
+.compact-resource-form label.block > p:last-child {
+  grid-column: 2;
+}
+
+.compact-resource-form .compact-form-field--textarea label.block {
+  align-items: start;
+}
+
+.compact-resource-form .compact-form-field--textarea label.block > div:first-child {
+  padding-top: 6px;
+}
+
+.compact-resource-form input:not([type='checkbox']),
+.compact-resource-form select {
+  height: 32px;
+  border-radius: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-size: 13px;
+}
+
+.compact-resource-form textarea {
+  min-height: 58px;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.compact-resource-form label.flex {
+  min-height: 32px;
+  border-radius: 8px;
+  gap: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-size: 13px;
+}
+
+.compact-resource-form .rounded-2xl {
+  border-radius: 12px;
+}
+
+.bottom-action-resource-form {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+}
+
+.bottom-action-resource-form .bottom-action-resource-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.bottom-action-resource-form .bottom-action-resource-body > .bottom-action-resource-action-bar {
+  margin-top: auto;
+}
+
+.bottom-action-resource-form .bottom-action-resource-action-bar {
+  flex-shrink: 0;
+  padding-top: 12px;
+  padding-bottom: 18px;
+  box-shadow: none;
+}
+
+@media (max-width: 767px) {
+  .compact-resource-form label.block {
+    display: block;
+  }
+
+  .compact-resource-form label.block > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 4px;
+  }
+
+  .compact-resource-form label.block > :nth-child(2),
+  .compact-resource-form label.block > p:last-child {
+    grid-column: auto;
+  }
+
+  .compact-resource-form input:not([type='checkbox']),
+  .compact-resource-form select,
+  .compact-resource-form label.flex {
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .bottom-action-resource-form .bottom-action-resource-action-bar {
+    justify-content: flex-end;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
 @media (min-width: 1024px) and (max-width: 1365px) {
   .tablet-sidebar-full {
     width: 256px;

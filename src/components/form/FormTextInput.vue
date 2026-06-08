@@ -8,6 +8,7 @@ defineProps<{
   type?: string
   disabled?: boolean
   readonly?: boolean
+  required?: boolean
 }>()
 </script>
 
@@ -19,5 +20,6 @@ defineProps<{
     :type="type"
     :disabled="disabled"
     :readonly="readonly"
+    :required="required"
   />
 </template>

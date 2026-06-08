@@ -10,6 +10,8 @@ export type FormFieldConfig = {
   kind?: FormFieldKind
   placeholder?: string
   required?: boolean
+  span?: 1 | 2 | 3 | 4
+  rows?: number
   options?: { label: string; value: string }[]
   remoteOptions?: {
     endpoint: string
@@ -33,7 +35,10 @@ export type FormActionConfig = {
 
 export type ResourceFormConfig = {
   title: string
+  localizedTitle?: string
   endpoint: string
+  layout?: 'standard' | 'compact'
+  hideAudit?: boolean
   numberKeys: string[]
   dateKey?: string
   statusKey?: string
@@ -43,6 +48,7 @@ export type ResourceFormConfig = {
   sections: Array<{
     title: string
     description?: string
+    cols?: 1 | 2 | 3 | 4
     fields: FormFieldConfig[]
   }>
   lineItems?: {
@@ -63,10 +69,10 @@ const discountOptions = [
 ]
 
 const contactTypeOptions = [
-  { label: 'Customer', value: 'customer' },
-  { label: 'Supplier', value: 'supplier' },
-  { label: 'Employee', value: 'employee' },
-  { label: 'Other', value: 'other' },
+  { label: 'Pelanggan', value: 'customer' },
+  { label: 'Pemasok', value: 'supplier' },
+  { label: 'Karyawan', value: 'employee' },
+  { label: 'Lainnya', value: 'other' },
 ]
 
 const productTypeOptions = [
@@ -156,22 +162,33 @@ function cancelActions(module: string) {
 export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
   '/master-data/contacts': {
     title: 'Contact',
+    localizedTitle: 'Kontak',
     endpoint: '/master-data/contacts',
+    layout: 'compact',
     numberKeys: ['contact_code', 'code', 'id'],
     createPermission: 'contacts.create',
     editPermission: 'contacts.edit',
     sections: [
       {
-        title: 'Contact Details',
+        title: 'Informasi Utama',
+        cols: 3,
         fields: [
-          { key: 'contact_code', label: 'Contact Code', required: true },
-          { key: 'name', label: 'Name', required: true },
-          { key: 'contact_type', label: 'Type', kind: 'select', options: contactTypeOptions, required: true },
-          { key: 'payment_term_id', label: 'Payment Term', kind: 'select', remoteOptions: { endpoint: '/master-data/payment-terms', labelKey: 'name', valueKey: 'id', params: { is_active: true } } },
+          { key: 'contact_code', label: 'No.', required: true },
+          { key: 'name', label: 'Nama', required: true, span: 2 },
+          { key: 'contact_type', label: 'Jenis', kind: 'select', options: contactTypeOptions, required: true },
+          { key: 'payment_term_id', label: 'Syarat Bayar', kind: 'select', remoteOptions: { endpoint: '/master-data/payment-terms', labelKey: 'name', valueKey: 'id', params: { is_active: true } } },
+          { key: 'tax_number', label: 'No. Pajak' },
+        ],
+      },
+      {
+        title: 'Kontak & Alamat',
+        cols: 3,
+        fields: [
           { key: 'email', label: 'Email' },
-          { key: 'phone', label: 'Phone' },
-          { key: 'address', label: 'Address', kind: 'textarea' },
-          { key: 'is_active', label: 'Active', kind: 'checkbox' },
+          { key: 'phone', label: 'No. Telp' },
+          { key: 'is_active', label: 'Aktif', kind: 'checkbox' },
+          { key: 'address', label: 'Alamat', kind: 'textarea', span: 3, rows: 2 },
+          { key: 'notes', label: 'Catatan', kind: 'textarea', span: 3, rows: 2 },
         ],
       },
     ],
@@ -180,6 +197,7 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
   '/master-data/payment-terms': {
     title: 'Payment Term',
     endpoint: '/master-data/payment-terms',
+    hideAudit: true,
     numberKeys: ['code', 'id'],
     createPermission: 'payment_terms.create',
     editPermission: 'payment_terms.edit',
@@ -201,6 +219,7 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
   '/master-data/units': {
     title: 'Unit',
     endpoint: '/master-data/units',
+    hideAudit: true,
     numberKeys: ['code', 'id'],
     createPermission: 'units.create',
     editPermission: 'units.edit',
@@ -240,6 +259,7 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
   '/master-data/departments': {
     title: 'Department',
     endpoint: '/master-data/departments',
+    hideAudit: true,
     numberKeys: ['code', 'id'],
     createPermission: 'departments.create',
     editPermission: 'departments.edit',
@@ -249,6 +269,7 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
   '/master-data/projects': {
     title: 'Project',
     endpoint: '/master-data/projects',
+    hideAudit: true,
     numberKeys: ['code', 'id'],
     createPermission: 'projects.create',
     editPermission: 'projects.edit',
@@ -258,6 +279,7 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
   '/settings/account-mappings': {
     title: 'Account Mapping',
     endpoint: '/master-data/account-mappings',
+    hideAudit: true,
     numberKeys: ['mapping_key', 'id'],
     hasShow: false,
     editPermission: 'settings.company.edit',

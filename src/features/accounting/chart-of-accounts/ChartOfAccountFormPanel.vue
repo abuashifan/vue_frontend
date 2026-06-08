@@ -183,7 +183,7 @@ defineExpose({
 </script>
 
 <template>
-  <form class="space-y-6" @submit.prevent="onSubmit">
+  <form class="bottom-action-resource-form min-w-0 space-y-6" @submit.prevent="onSubmit">
     <FormHeader :title="title" :subtitle="subtitle">
       <template #meta>
         <div class="mt-3">
@@ -194,34 +194,36 @@ defineExpose({
 
     <FormValidationSummary :errors="props.serverErrors ?? []" />
 
-    <FormSection title="Account Details" description="Maintain the account classification and hierarchy.">
-      <FormGrid :cols="2">
-        <FormInput
-          name="accountCode"
-          label="Account Code"
-          placeholder="e.g. 111.101-03"
-          :disabled="props.mode === 'edit'"
-        />
-        <FormInput name="accountName" label="Account Name" placeholder="e.g. Cash" />
-        <FormSelect name="accountType" label="Account Type" :options="accountTypeOptions" />
-        <FormSelect name="normalBalance" label="Normal Balance" :options="normalBalanceOptions" />
-        <FormSelect name="parentAccountId" label="Parent Account" :options="parentOptions" />
+    <div class="bottom-action-resource-body min-w-0 space-y-6">
+      <FormSection title="Account Details" description="Maintain the account classification and hierarchy.">
+        <FormGrid :cols="2">
+          <FormInput
+            name="accountCode"
+            label="Account Code"
+            placeholder="e.g. 111.101-03"
+            :disabled="props.mode === 'edit'"
+          />
+          <FormInput name="accountName" label="Account Name" placeholder="e.g. Cash" />
+          <FormSelect name="accountType" label="Account Type" :options="accountTypeOptions" />
+          <FormSelect name="normalBalance" label="Normal Balance" :options="normalBalanceOptions" />
+          <FormSelect name="parentAccountId" label="Parent Account" :options="parentOptions" />
 
-        <label class="block space-y-1.5">
-          <span class="text-xs font-bold text-slate-500">Status</span>
-          <span class="flex h-10 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3">
-            <input
-              v-model="isActive"
-              type="checkbox"
-              class="h-4 w-4 rounded border-slate-300 text-[#24a1db] focus:ring-[#e9f6fb]"
-            />
-            <span class="text-sm font-semibold text-slate-700">Active</span>
-          </span>
-        </label>
-      </FormGrid>
-    </FormSection>
+          <label class="block space-y-1.5">
+            <span class="text-xs font-bold text-slate-500">Status</span>
+            <span class="flex h-10 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3">
+              <input
+                v-model="isActive"
+                type="checkbox"
+                class="h-4 w-4 rounded border-slate-300 text-[#24a1db] focus:ring-[#e9f6fb]"
+              />
+              <span class="text-sm font-semibold text-slate-700">Active</span>
+            </span>
+          </label>
+        </FormGrid>
+      </FormSection>
+    </div>
 
-    <FormActionBar>
+    <FormActionBar class="bottom-action-resource-action-bar">
       <BaseButton variant="secondary" type="button" :disabled="props.saving" @click="emit('cancel')">Cancel</BaseButton>
       <BaseButton variant="primary" type="submit" :loading="props.saving">Save Account</BaseButton>
     </FormActionBar>

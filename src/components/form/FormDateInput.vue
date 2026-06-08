@@ -11,11 +11,13 @@ const props = withDefaults(
     label?: string
     disabled?: boolean
     compact?: boolean
+    required?: boolean
   }>(),
   {
     label: '',
     disabled: false,
     compact: false,
+    required: false,
   },
 )
 
@@ -28,7 +30,7 @@ const model = computed({
 </script>
 
 <template>
-  <FormField :name="name" :label="label">
+  <FormField :name="name" :label="label" :required="required">
     <DateInput
       v-model="model"
       :name="name"

@@ -13,6 +13,7 @@ const props = withDefaults(
     min?: number
     max?: number
     step?: string | number
+    required?: boolean
   }>(),
   {
     label: '',
@@ -21,6 +22,7 @@ const props = withDefaults(
     min: undefined,
     max: undefined,
     step: undefined,
+    required: false,
   },
 )
 
@@ -33,7 +35,7 @@ const model = computed({
 </script>
 
 <template>
-  <FormField :name="name" :label="label">
+  <FormField :name="name" :label="label" :required="required">
     <input
       v-model="model"
       type="number"

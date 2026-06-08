@@ -20,6 +20,8 @@ export type SidebarMenuItem = {
   module: string
   openAsPrimaryTab: true
   implemented: boolean
+  frontendOnly?: boolean
+  note?: string
 }
 
 export type SidebarMenuSection = {
@@ -47,12 +49,29 @@ function item(
   endpoint: string,
   permission: string,
   implemented = false,
+  options: Pick<SidebarMenuItem, 'frontendOnly' | 'note'> = {},
 ): SidebarMenuItem {
-  return { module, id, label, href, endpoint, permission, implemented, openAsPrimaryTab: true }
+  return { module, id, label, href, endpoint, permission, implemented, openAsPrimaryTab: true, ...options }
 }
 
 function section(id: string, label: string, children: SidebarMenuItem[]): SidebarMenuSection {
   return { id, label, children }
+}
+
+function frontendReport(id: string, label: string): SidebarMenuItem {
+  return item(
+    'reports',
+    id,
+    label,
+    `/reports/frontend-only/${id}`,
+    `/reports/frontend-only/${id}`,
+    'reports.view',
+    false,
+    {
+      frontendOnly: true,
+      note: 'Daftar laporan ini baru disiapkan di frontend. Endpoint backend belum tersedia.',
+    },
+  )
 }
 
 export function isSidebarMenuSection(node: SidebarMenuNode): node is SidebarMenuSection {
@@ -68,45 +87,61 @@ export const reportMenuSections: SidebarMenuSection[] = [
     item(
       'reports',
       'balance-sheet',
-      'Laporan Posisi Keuangan / Neraca',
+      'Neraca (Standar)',
       '/reports/balance-sheet',
       '/reports/balance-sheet',
       'reports.view',
       true,
     ),
+    frontendReport('balance-sheet-branch', 'Neraca (Standar) - Cabang'),
     item(
       'reports',
       'profit-loss',
-      'Laporan Laba Rugi',
+      'Laba Rugi (Standar)',
       '/reports/profit-loss',
       '/reports/profit-loss',
       'reports.view',
       true,
     ),
+    frontendReport('profit-loss-branch', 'Laba Rugi (Standar) - Cabang'),
+    frontendReport('retained-earnings', 'Laba Ditahan'),
     item(
       'reports',
       'cash-flow',
-      'Laporan Arus Kas',
+      'Arus Kas (Metode Langsung) - Rincian',
       '/reports/cash-flow',
       '/reports/cash-flow',
       'reports.view',
       true,
     ),
+    frontendReport('balance-sheet-parent-subsidiary', 'Neraca (Induk Skontro)'),
+    frontendReport('balance-sheet-multi-period', 'Neraca (Multi Periode)'),
+    frontendReport('balance-sheet-month-comparison', 'Neraca (Perbandingan Bulan)'),
+    frontendReport('balance-sheet-budget-comparison', 'Neraca (Perbandingan Anggaran)'),
+    frontendReport('balance-sheet-budget-period', 'Neraca (Anggaran Periode)'),
+    frontendReport('profit-loss-multi-period', 'Laba Rugi (Multi Periode)'),
+    frontendReport('profit-loss-multi-period-new', 'Laba Rugi (Multi Periode NEW)'),
+    frontendReport('profit-loss-month-comparison', 'Laba Rugi (Perbandingan Bulan)'),
+    frontendReport('profit-loss-budget-comparison', 'Laba Rugi (Perbandingan Anggaran)'),
     item(
       'reports',
       'financial-summary',
-      'Ringkasan Keuangan',
+      'Keuangan - Ringkasan',
       '/reports/financial-summary',
       '/reports/financial-summary',
       'reports.view',
       true,
     ),
+    frontendReport('cash-flow-indirect-summary', 'Arus Kas (Metode Tidak Langsung) - Ringkasan'),
+    frontendReport('cash-flow-indirect-detail', 'Arus Kas (Metode Tidak Langsung) - Rincian'),
+    frontendReport('owner-equity-changes', 'Perubahan Ekuitas Pemilik'),
+    frontendReport('projected-cash-flow-detail', 'Arus Kas Terproyek - Rincian'),
   ]),
-  section('general-ledger-reports', 'Laporan Buku Besar', [
+  section('general-ledger-reports', 'Buku Besar', [
     item(
       'reports',
       'general-ledger',
-      'Buku Besar',
+      'Buku Besar - Ringkasan',
       '/reports/general-ledger',
       '/reports/general-ledger',
       'reports.view',
@@ -115,11 +150,12 @@ export const reportMenuSections: SidebarMenuSection[] = [
     item(
       'reports',
       'general-ledger-detail',
-      'Detail Buku Besar',
+      'Buku Besar - Rincian',
       '/reports/general-ledger-detail',
       '/reports/general-ledger-detail',
       'reports.view',
     ),
+    frontendReport('all-journals', 'Semua Jurnal'),
     item(
       'reports',
       'trial-balance',
@@ -129,8 +165,34 @@ export const reportMenuSections: SidebarMenuSection[] = [
       'reports.view',
       true,
     ),
+    frontendReport('purchase-journal', 'Jurnal Pembelian'),
+    frontendReport('sales-journal', 'Jurnal Penjualan'),
+    frontendReport('general-journal-summary', 'Ringkasan Jurnal Umum'),
+    frontendReport('general-journal-voucher', 'Bukti Jurnal Umum'),
+    frontendReport('other-payment-summary', 'Pembayaran Lainnya - Ringkasan'),
+    frontendReport('other-payment-detail', 'Pembayaran Lainnya Rincian'),
+    frontendReport('chart-of-accounts-report', 'Daftar Akun'),
+    frontendReport('general-ledger-history-list', 'Daftar Histori Buku Besar'),
+    frontendReport('general-ledger-budget-list', 'Daftar Anggaran Buku Besar'),
+    frontendReport('bank-book-list', 'Daftar Buku Bank'),
+    frontendReport('other-receipt-summary', 'Penerimaan Lainnya - Ringkasan'),
+    frontendReport('other-receipt-detail', 'Penerimaan Lainnya - Rincian'),
+    frontendReport('transaction-journal', 'Jurnal Transaksi'),
   ]),
-  section('receivable-reports', 'Laporan Piutang Usaha', [
+  section('sales-reports', 'Laporan Penjualan', [
+    frontendReport('sales-by-customer', 'Penjualan per Pelanggan'),
+    frontendReport('sales-by-item', 'Penjualan per Barang'),
+    frontendReport('sales-by-salesperson', 'Penjualan per Sales'),
+    frontendReport('sales-order-summary', 'Ringkasan Sales Order'),
+    frontendReport('sales-return-summary', 'Retur Penjualan'),
+  ]),
+  section('purchase-reports', 'Laporan Pembelian', [
+    frontendReport('purchase-by-vendor', 'Pembelian per Pemasok'),
+    frontendReport('purchase-by-item', 'Pembelian per Barang'),
+    frontendReport('purchase-order-summary', 'Ringkasan Purchase Order'),
+    frontendReport('purchase-return-summary', 'Retur Pembelian'),
+  ]),
+  section('receivable-reports', 'Akun Piutang dan Pelanggan', [
     item(
       'reports',
       'customer-summary',
@@ -172,7 +234,7 @@ export const reportMenuSections: SidebarMenuSection[] = [
       'sales.ar.reconcile',
     ),
   ]),
-  section('payable-reports', 'Laporan Hutang Usaha', [
+  section('payable-reports', 'Akun Hutang dan Pemasok', [
     item(
       'reports',
       'vendor-summary',
@@ -214,7 +276,7 @@ export const reportMenuSections: SidebarMenuSection[] = [
       'purchase.ap.reconcile',
     ),
   ]),
-  section('inventory-reports', 'Laporan Persediaan', [
+  section('inventory-reports', 'Barang', [
     item(
       'reports',
       'stock-balance-report',
@@ -264,7 +326,12 @@ export const reportMenuSections: SidebarMenuSection[] = [
       'inventory.reports.view',
     ),
   ]),
-  section('cash-bank-reports', 'Laporan Kas & Bank', [
+  section('order-financing-reports', 'Pembiayaan Pesanan', [
+    frontendReport('order-financing-summary', 'Ringkasan Pembiayaan Pesanan'),
+    frontendReport('order-financing-due', 'Pembiayaan Jatuh Tempo'),
+    frontendReport('order-financing-reconciliation', 'Rekonsiliasi Pembiayaan Pesanan'),
+  ]),
+  section('other-reports', 'Laporan Lainnya', [
     item(
       'reports',
       'cash-bank-account-statement',
@@ -274,6 +341,54 @@ export const reportMenuSections: SidebarMenuSection[] = [
       'cash_bank.view',
       true,
     ),
+    frontendReport('activity-summary', 'Ringkasan Aktivitas'),
+    frontendReport('transaction-list', 'Daftar Transaksi'),
+  ]),
+  section('audit-reports', 'Laporan Audit', [
+    frontendReport('audit-trail', 'Audit Trail'),
+    frontendReport('user-activity-log', 'Aktivitas Pengguna'),
+    frontendReport('data-change-log', 'Perubahan Data'),
+  ]),
+  section('fixed-asset-reports', 'Aktiva Tetap', [
+    frontendReport('fixed-asset-register', 'Daftar Aktiva Tetap'),
+    frontendReport('fixed-asset-depreciation', 'Penyusutan Aktiva Tetap'),
+    frontendReport('fixed-asset-disposal', 'Pelepasan Aktiva Tetap'),
+  ]),
+  section('tax-reports', 'Laporan Pajak', [
+    frontendReport('tax-summary', 'Ringkasan Pajak'),
+    frontendReport('vat-in', 'PPN Masukan'),
+    frontendReport('vat-out', 'PPN Keluaran'),
+    frontendReport('withholding-tax', 'PPh Potong/Pungut'),
+  ]),
+  section('department-reports', 'Laporan Departemen', [
+    frontendReport('department-profit-loss', 'Laba Rugi per Departemen'),
+    frontendReport('department-expense', 'Biaya per Departemen'),
+  ]),
+  section('project-reports', 'Laporan Proyek', [
+    frontendReport('project-profit-loss', 'Laba Rugi per Proyek'),
+    frontendReport('project-cost', 'Biaya Proyek'),
+    frontendReport('project-budget-realization', 'Realisasi Anggaran Proyek'),
+  ]),
+  section('manufacturing-reports', 'Laporan Manufaktur', [
+    frontendReport('production-summary', 'Ringkasan Produksi'),
+    frontendReport('bill-of-material-usage', 'Pemakaian Bill of Material'),
+    frontendReport('work-order-status', 'Status Work Order'),
+  ]),
+  section('saved-reports', 'Laporan Tersimpan', [
+    frontendReport('saved-report-list', 'Daftar Laporan Tersimpan'),
+    frontendReport('scheduled-reports', 'Laporan Terjadwal'),
+  ]),
+  section('custom-reports', 'Custom Reports', [
+    frontendReport('custom-report-builder', 'Report Builder'),
+    frontendReport('custom-report-list', 'Daftar Custom Report'),
+  ]),
+  section('export-reports', 'Ekspor Laporan', [
+    frontendReport('export-queue', 'Antrean Ekspor'),
+    frontendReport('export-history', 'Riwayat Ekspor'),
+  ]),
+  section('import-format-reports', 'Laporan Format Impor', [
+    frontendReport('import-format-list', 'Daftar Format Impor'),
+    frontendReport('import-validation-report', 'Laporan Validasi Impor'),
   ]),
 ]
 
