@@ -11,7 +11,7 @@ export type PrimaryTab = {
   closable: boolean
 }
 
-export type SecondaryTabMode = 'list' | 'create' | 'edit' | 'detail'
+export type SecondaryTabMode = 'list' | 'create' | 'edit' | 'detail' | 'report'
 
 export type SecondaryTab = {
   id: string
@@ -20,6 +20,9 @@ export type SecondaryTab = {
   mode: SecondaryTabMode
   entityId?: string | number
   entityNumber?: string
+  workspacePath?: string
+  endpoint?: string
+  permission?: string
   closable: boolean
   dirty: boolean
   createdAt: number
@@ -304,6 +307,54 @@ export const useWorkspaceTabsStore = defineStore('workspaceTabs', {
 
       this.secondaryTabsByPrimaryId[primaryTabId] = [...(this.secondaryTabsByPrimaryId[primaryTabId] ?? []), tab]
       this.activateSecondaryTab(primaryTabId, id)
+      return tab
+    },
+
+    openCustomSecondaryTab(
+      primaryTabId: string,
+      options: {
+        id: string
+        label: string
+        mode: Exclude<SecondaryTabMode, 'list'>
+        entityId?: string | number
+        entityNumber?: string
+        workspacePath?: string
+        endpoint?: string
+        permission?: string
+        closable?: boolean
+      },
+    ) {
+      this.ensureListSecondaryTab(primaryTabId)
+
+      const existing = (this.secondaryTabsByPrimaryId[primaryTabId] ?? []).find(
+        (t) => t.id === options.id,
+      )
+      if (existing) {
+        this.activateSecondaryTab(primaryTabId, options.id)
+        return existing
+      }
+
+      const tab: SecondaryTab = {
+        id: options.id,
+        primaryTabId,
+        label: options.label,
+        mode: options.mode,
+        entityId: options.entityId,
+        entityNumber: options.entityNumber,
+        workspacePath: options.workspacePath,
+        endpoint: options.endpoint,
+        permission: options.permission,
+        closable: options.closable ?? true,
+        dirty: false,
+        createdAt: now(),
+        updatedAt: now(),
+      }
+
+      this.secondaryTabsByPrimaryId[primaryTabId] = [
+        ...(this.secondaryTabsByPrimaryId[primaryTabId] ?? []),
+        tab,
+      ]
+      this.activateSecondaryTab(primaryTabId, tab.id)
       return tab
     },
 

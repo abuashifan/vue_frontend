@@ -100,6 +100,17 @@ const router = createRouter({
           },
         },
         {
+          path: 'reports',
+          name: 'reports',
+          component: () => import('@/pages/workspace/RouteIntent.vue'),
+          meta: {
+            apiEndpoint: '/reports',
+            primaryTabId: '/reports',
+            primaryTabLabel: 'Semua Laporan',
+            primaryTabClosable: true,
+          },
+        },
+        {
           path: 'reports/general-ledger',
           name: 'general-ledger',
           component: () => import('@/pages/workspace/RouteIntent.vue'),

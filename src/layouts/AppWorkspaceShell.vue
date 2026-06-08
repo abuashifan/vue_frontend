@@ -57,7 +57,7 @@ const modules = computed<SidebarMenuGroup[]>(() =>
         .map(filterMenuNode)
         .filter((node): node is SidebarMenuNode => node != null),
     }))
-    .filter((module) => module.key === 'dashboard' || module.items.length > 0),
+    .filter((module) => module.key === 'dashboard' || module.items.length > 0 || module.href),
 )
 
 const activeModuleKey = ref('dashboard')
@@ -105,6 +105,13 @@ async function openPrimary(path: string, label: string, closable = true) {
 }
 
 async function onToggleModule(moduleKey: string) {
+  const module = modules.value.find((item) => item.key === moduleKey)
+  if (module?.href) {
+    activeModuleKey.value = module.key
+    await openPrimary(module.href, module.label, true)
+    return
+  }
+
   activeModuleKey.value = activeModuleKey.value === moduleKey ? '' : moduleKey
   if (moduleKey === 'dashboard') {
     tabs.activatePrimaryTab('/dashboard')
@@ -113,6 +120,7 @@ async function onToggleModule(moduleKey: string) {
 }
 
 async function onCollapsedModule(moduleKey: string) {
+  const module = modules.value.find((item) => item.key === moduleKey)
   activeModuleKey.value = moduleKey
   if (moduleKey === 'dashboard') {
     floatingModuleKey.value = null
@@ -121,8 +129,9 @@ async function onCollapsedModule(moduleKey: string) {
     return
   }
 
-  if (moduleKey === 'reports') {
+  if (module?.href) {
     floatingModuleKey.value = null
+    await openPrimary(module.href, module.label, true)
     return
   }
 

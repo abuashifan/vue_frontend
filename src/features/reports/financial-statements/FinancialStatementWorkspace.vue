@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -35,8 +35,15 @@ type DisplayRow = {
 }
 
 const tabs = useWorkspaceTabsStore()
+const reportPath = computed(() => {
+  const activeSecondary = tabs.activeSecondaryTab
+  if (tabs.activePrimaryTabId === '/reports' && activeSecondary?.mode === 'report') {
+    return activeSecondary.workspacePath ?? String(activeSecondary.entityId ?? '')
+  }
+  return tabs.activePrimaryTabId
+})
 const kind = computed<StatementKind>(() => {
-  const value = tabs.activePrimaryTabId.replace('/reports/', '')
+  const value = reportPath.value.replace('/reports/', '')
   return value === 'balance-sheet' || value === 'cash-flow' || value === 'financial-summary' ? value : 'profit-loss'
 })
 const titles: Record<StatementKind, string> = {
@@ -183,6 +190,9 @@ async function load() {
 }
 
 onMounted(load)
+watch(kind, () => {
+  void load()
+})
 </script>
 
 <template>

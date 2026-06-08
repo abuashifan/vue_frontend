@@ -73,6 +73,19 @@ function resetFilters() {
 }
 
 function openGeneralLedger() {
+  if (tabs.activePrimaryTabId === '/reports') {
+    tabs.openCustomSecondaryTab('/reports', {
+      id: '/reports::report::general-ledger',
+      label: 'Buku Besar',
+      mode: 'report',
+      entityId: '/reports/general-ledger',
+      workspacePath: '/reports/general-ledger',
+      endpoint: '/reports/general-ledger',
+      permission: 'reports.view',
+    })
+    return
+  }
+
   tabs.openPrimaryTab({ id: '/reports/general-ledger', label: 'General Ledger', path: '/reports/general-ledger', closable: true })
   void router.push('/reports/general-ledger')
 }

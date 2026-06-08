@@ -6,6 +6,7 @@ import ChartOfAccountsWorkspaceContent from '@/pages/accounting/chart-of-account
 import FiscalClosingWorkspace from '@/pages/accounting/fiscal-closing/FiscalClosingWorkspace.vue'
 import TrialBalanceWorkspaceContent from '@/pages/accounting/trial-balance/TrialBalanceWorkspaceContent.vue'
 import GeneralLedgerWorkspaceContent from '@/pages/reports/general-ledger/GeneralLedgerWorkspaceContent.vue'
+import ReportsWorkspaceContent from '@/pages/reports/ReportsWorkspaceContent.vue'
 import FinancialStatementWorkspace from '@/features/reports/financial-statements/FinancialStatementWorkspace.vue'
 import BackendResourceWorkspaceContent from '@/pages/workspace/BackendResourceWorkspaceContent.vue'
 import UserAccessPage from '@/pages/access/UserAccessPage.vue'
@@ -52,6 +53,7 @@ export const workspaceRegistry: Record<string, Component> = {
   '/accounting/chart-of-accounts': ChartOfAccountsWorkspaceContent,
   '/accounting/fiscal-closing': FiscalClosingWorkspace,
   '/accounting/trial-balance': TrialBalanceWorkspaceContent,
+  '/reports': ReportsWorkspaceContent,
   '/reports/general-ledger': GeneralLedgerWorkspaceContent,
   '/reports/profit-loss': FinancialStatementWorkspace,
   '/reports/balance-sheet': FinancialStatementWorkspace,
