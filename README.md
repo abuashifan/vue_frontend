@@ -2,6 +2,37 @@
 
 This template should help get you started developing with Vue 3 in Vite.
 
+## Backend API
+
+The dev default uses `VITE_API_URL=/api` and proxies requests to the Laravel backend through
+`VITE_API_PROXY_TARGET`.
+
+```sh
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Default `.env` values:
+
+```text
+VITE_API_URL=/api
+VITE_API_PROXY_TARGET=http://127.0.0.1:8000
+```
+
+If Laravel is running on another port, update `VITE_API_PROXY_TARGET` or set `VITE_API_URL` to the
+direct backend API URL, for example `http://127.0.0.1:8000/api`.
+
+Demo login after the backend seed steps:
+
+```text
+Email: admin@example.com
+Password: password
+```
+
+Tenant requests include `Authorization: Bearer <token>` and `X-Company-ID` through the shared API
+client after a company is selected.
+
 ## Recommended IDE Setup
 
 [VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
