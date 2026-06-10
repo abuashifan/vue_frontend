@@ -16,6 +16,17 @@ function snapshot<T>(value: T): T {
 export function useTransactionDraftState(secondaryTabId: string, form: FormContext<Record<string, unknown>>) {
   const tabs = useWorkspaceTabsStore()
 
+  function syncDraftState() {
+    if (!secondaryTabId) return
+    if (form.meta.value.dirty) {
+      tabs.updateDraftState(secondaryTabId, snapshot(form.values))
+      tabs.setSecondaryDirty(secondaryTabId, true)
+      return
+    }
+
+    tabs.clearDraftState(secondaryTabId)
+  }
+
   onMounted(() => {
     const draft = tabs.draftStateBySecondaryTabId[secondaryTabId] as Record<string, unknown> | undefined
     if (draft && typeof draft === 'object') {
@@ -25,16 +36,13 @@ export function useTransactionDraftState(secondaryTabId: string, form: FormConte
 
   watch(
     () => form.values,
-    (values) => {
-      tabs.updateDraftState(secondaryTabId, snapshot(values))
-      tabs.setSecondaryDirty(secondaryTabId, form.meta.value.dirty)
-    },
+    () => syncDraftState(),
     { deep: true },
   )
 
   watch(
     () => form.meta.value.dirty,
-    (dirty) => tabs.setSecondaryDirty(secondaryTabId, dirty),
+    () => syncDraftState(),
   )
 
   function clearDraft() {

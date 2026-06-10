@@ -159,6 +159,16 @@ export function useTransactionForm(options: {
     }
   }
 
+  function valuesWithTrailingBlankLine(values: Record<string, unknown>) {
+    if (isReadonly.value || !Array.isArray(values.lines)) return values
+    const blank = defaultLineValue()
+    if (!blank) return values
+    const lines = values.lines as Record<string, unknown>[]
+    const lastLine = lines[lines.length - 1]
+    if (!lastLine || isBlankLine(lastLine)) return values
+    return { ...values, lines: [...lines, blank] }
+  }
+
   function trimBlankLinesForValidation() {
     if (!Array.isArray(form.values.lines)) return
     const lines = form.values.lines as Record<string, unknown>[]
@@ -213,16 +223,15 @@ export function useTransactionForm(options: {
   async function load() {
     if (options.mode === 'create') return
     if (options.entityId == null) return
-    if (options.mode !== 'detail' && draft.hasDraft()) return
     loading.value = true
     error.value = null
     try {
       const raw = await options.config.apiService.get(options.entityId)
       const normalizedData = normalizedResponseData(raw)
       if (normalizedData) {
-        form.setValues(normalizedData, false)
-        ensureTrailingBlankLine()
+        form.resetForm({ values: valuesWithTrailingBlankLine(normalizedData) })
         status.value = String(normalizedData.status ?? '')
+        draft.clearDraft()
       }
     } catch (cause) {
       error.value = toErrorMessage(cause)
@@ -252,12 +261,11 @@ export function useTransactionForm(options: {
       }
       const savedData = normalizedResponseData(raw)
       if (savedData) {
-        form.resetForm({ values: savedData })
+        form.resetForm({ values: valuesWithTrailingBlankLine(savedData) })
         status.value = String(savedData.status ?? '')
       } else {
-        form.resetForm({ values: payload })
+        form.resetForm({ values: valuesWithTrailingBlankLine(payload) })
       }
-      ensureTrailingBlankLine()
       draft.clearDraft()
       return savedData ?? payload
     } catch (cause) {
