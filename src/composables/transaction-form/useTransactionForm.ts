@@ -24,7 +24,79 @@ export function useTransactionForm(options: {
     initialValues: options.config.makeEmptyValues(),
   })
 
-  const isReadonly = computed(() => options.mode === 'detail')
+  const lockedStatuses = new Set([
+    'billed',
+    'cancelled',
+    'canceled',
+    'closed',
+    'converted',
+    'delivered',
+    'expired',
+    'fully_allocated',
+    'invoiced',
+    'paid',
+    'partially_allocated',
+    'partially_billed',
+    'partially_delivered',
+    'partially_invoiced',
+    'partially_paid',
+    'partially_received',
+    'posted',
+    'received',
+    'refunded',
+    'rejected',
+    'void',
+    'voided',
+  ])
+  const linkedAmountFields = [
+    'allocated_amount',
+    'applied_down_payment_amount',
+    'applied_vendor_deposit_amount',
+    'paid_amount',
+    'returned_amount',
+  ]
+  const linkedLineFields = [
+    'allocated_amount',
+    'billed_quantity',
+    'delivered_quantity',
+    'invoiced_quantity',
+    'paid_amount',
+    'received_quantity',
+    'returned_quantity',
+  ]
+  const linkedRelationFields = [
+    'deposits',
+    'payments',
+    'receipts',
+    'invoices',
+    'sales_invoices',
+    'vendor_bills',
+    'delivery_orders',
+    'returns',
+  ]
+
+  function numericValue(value: unknown) {
+    if (value === null || value === undefined || value === '') return 0
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  function hasLinkedProgress(values: Record<string, unknown>) {
+    if (linkedAmountFields.some((field) => numericValue(values[field]) > 0)) return true
+    if (linkedRelationFields.some((field) => Array.isArray(values[field]) && (values[field] as unknown[]).length > 0)) return true
+    if (!Array.isArray(values.lines)) return false
+    return values.lines.some((line) => {
+      const row = asRecord(line)
+      return linkedLineFields.some((field) => numericValue(row[field]) > 0)
+    })
+  }
+
+  const isLocked = computed(() => {
+    if (options.mode === 'create') return false
+    const currentStatus = String(form.values.status ?? status.value ?? '').toLowerCase()
+    return lockedStatuses.has(currentStatus) || hasLinkedProgress(form.values)
+  })
+  const isReadonly = computed(() => options.mode === 'detail' || isLocked.value)
 
   const draft = useTransactionDraftState(options.secondaryTabId, form)
 

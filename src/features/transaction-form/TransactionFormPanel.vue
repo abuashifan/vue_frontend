@@ -114,6 +114,7 @@ const selectedPaymentTerm = computed(() => {
 const workflowBusy = computed(() => submitMode.value !== null || tx.loading.value)
 const visibleLifecycleActions = computed(() =>
   props.config.actions.filter((action) => {
+    if (tx.isReadonly.value) return false
     if (action.key === 'save' || !entityId) return false
     if (!can(action.permission)) return false
     return !action.whenStatusIn || action.whenStatusIn.includes((tx.status.value ?? '').toLowerCase())
@@ -174,6 +175,7 @@ watch(
 )
 const visibleConversions = computed(() =>
   (props.config.conversions ?? []).filter((conversion) => {
+    if (tx.isReadonly.value) return false
     if (!entityId || !can(conversion.permission)) return false
     return conversion.whenStatusIn.includes((tx.status.value ?? '').toLowerCase())
   }),
