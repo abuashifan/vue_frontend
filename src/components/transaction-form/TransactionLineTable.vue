@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { Field, useFieldArray, useFormContext } from 'vee-validate'
-import { Minus, Plus } from 'lucide-vue-next'
+import { Minus } from 'lucide-vue-next'
 
-import BaseButton from '@/components/ui/BaseButton.vue'
 import IconButton from '@/components/ui/IconButton.vue'
 import TransactionFormattedNumberInput from '@/components/transaction-form/TransactionFormattedNumberInput.vue'
 import TransactionSearchableSelect from '@/components/transaction-form/TransactionSearchableSelect.vue'
@@ -66,8 +65,8 @@ const hasLines = computed(() => fields.value.length > 0)
 const priceField = computed(() => props.productConfig.priceField ?? 'unit_price')
 const priceLabel = computed(() => props.productConfig.priceLabel ?? 'Unit Price')
 
-function addLine() {
-  push({
+function blankLine(): TransactionLine {
+  return {
     product_id: '',
     product_code: '',
     description: '',
@@ -83,14 +82,11 @@ function addLine() {
     line_total: 0,
     department_id: null,
     project_id: null,
-  })
+  }
 }
 
-async function addProductLine(option: unknown) {
-  addLine()
-  await nextTick()
-  const index = fields.value.length - 1
-  if (index >= 0) selectProduct(index, option)
+function addLine() {
+  push(blankLine())
 }
 
 function lineAt(index: number) {
@@ -126,55 +122,55 @@ function selectProduct(index: number, option: unknown) {
   const next = applyConfiguredProductToLine(line, product, props.productConfig, appliedDescriptions.value[index])
   form?.setFieldValue(`${props.name}[${index}]`, next)
   appliedDescriptions.value[index] = product.name || product.label
+  if (!props.readonly && index === fields.value.length - 1 && next.product_id) {
+    addLine()
+  }
+}
+
+function hasSelectedProduct(line: TransactionLine) {
+  return line.product_id !== null && line.product_id !== undefined && line.product_id !== ''
+}
+
+function ensureEditableLine() {
+  if (props.readonly) return
+  const lines = form?.values[props.name]
+  if (!Array.isArray(lines) || lines.length === 0) {
+    form?.setFieldValue(props.name, [blankLine()])
+    return
+  }
+
+  const lastLine = lines[lines.length - 1]
+  if (lastLine && typeof lastLine === 'object' && hasSelectedProduct(lastLine as TransactionLine)) {
+    addLine()
+  }
+}
+
+function removeLine(index: number) {
+  if (props.readonly) return
+  if (fields.value.length <= 1) {
+    form?.setFieldValue(props.name, [blankLine()])
+    appliedDescriptions.value = {}
+    return
+  }
+
+  remove(index)
+  delete appliedDescriptions.value[index]
+  void nextTick(ensureEditableLine)
 }
 
 onMounted(() => {
   void resetProducts()
   void loadDimensions()
+  ensureEditableLine()
 })
 </script>
 
 <template>
   <div class="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-    <div class="grid min-w-0 flex-none gap-1.5 border-b border-slate-100 bg-white px-2 py-1 md:grid-cols-[minmax(240px,420px)_auto_minmax(0,1fr)_auto] md:items-center">
-      <TransactionSearchableSelect
-        :model-value="null"
-        :options="productOptions"
-        option-value="id"
-        option-label="label"
-        placeholder="Cari/Pilih Barang & Jasa..."
-        empty-text="Produk tidak ditemukan"
-        loading-text="Memuat produk..."
-        :readonly="readonly"
-        :loading="loadingProducts"
-        :error="productError"
-        compact
-        selected-display-mode="code-name"
-        selected-font-weight="normal"
-        selected-max-one-line
-        option-two-line
-        @open="resetProducts"
-        @search="searchProducts"
-        @select="addProductLine"
-      />
-
-      <BaseButton class="shrink-0" variant="secondary" size="sm" type="button" :disabled="readonly" @click="addLine">
-        <Plus class="h-4 w-4" />
-        Add line
-      </BaseButton>
-
-      <div class="min-w-0" />
-
-      <div class="flex min-w-0 items-center justify-start gap-2 md:justify-end">
-        <span class="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-black tabular-nums text-slate-900">
-          {{ fields.length }} Items
-        </span>
-      </div>
-    </div>
-
     <div class="workspace-table-scroll min-h-0 min-w-0 flex-1 overflow-auto">
-      <table class="transaction-line-table w-full min-w-[1280px] table-fixed text-left text-xs">
+      <table class="transaction-line-table w-full min-w-[1324px] table-fixed text-left text-xs">
         <colgroup>
+          <col class="w-[44px]" />
           <col class="w-[170px]" />
           <col class="w-[280px]" />
           <col class="w-[70px]" />
@@ -189,6 +185,7 @@ onMounted(() => {
         </colgroup>
         <thead class="sticky top-0 z-10 border-b border-slate-300 bg-slate-100 text-[11px] font-semibold uppercase text-slate-600">
           <tr>
+            <th class="h-7 px-2 py-1 text-center font-semibold">No</th>
             <th class="h-7 px-2 py-1 font-semibold">Product</th>
             <th class="h-7 px-2 py-1 font-semibold">Description</th>
             <th class="h-7 px-2 py-1 text-right font-semibold">Qty</th>
@@ -205,12 +202,15 @@ onMounted(() => {
 
         <tbody class="divide-y divide-slate-100">
           <tr v-if="!hasLines">
-            <td colspan="11" class="px-6 py-10 text-center text-sm font-semibold text-slate-500">
-              No lines. Click "Add line".
+            <td colspan="12" class="px-6 py-10 text-center text-sm font-semibold text-slate-500">
+              Belum ada line.
             </td>
           </tr>
 
           <tr v-for="(row, index) in fields" :key="row.key" class="h-9 align-middle hover:bg-slate-50/60">
+            <td class="px-2 py-1 text-center align-middle text-xs font-bold tabular-nums text-slate-500">
+              {{ index + 1 }}
+            </td>
             <td class="px-1.5 py-1 align-middle">
               <TransactionSearchableSelect
                 :name="`${name}[${index}].product_id`"
@@ -342,7 +342,7 @@ onMounted(() => {
               />
             </td>
             <td class="sticky right-0 bg-white px-1.5 py-1 text-center align-middle shadow-[-12px_0_18px_-18px_rgba(15,23,42,0.35)]">
-              <IconButton variant="danger" size="sm" type="button" :disabled="readonly" @click="remove(index)">
+              <IconButton variant="danger" size="sm" type="button" :disabled="readonly" @click="removeLine(index)">
                 <Minus class="h-4 w-4" />
               </IconButton>
             </td>

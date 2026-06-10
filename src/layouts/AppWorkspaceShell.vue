@@ -160,6 +160,11 @@ async function closePrimary(tabId: string) {
   await router.push(tabs.activePrimaryTab?.path ?? '/dashboard')
 }
 
+async function closeAllPrimaryTabs() {
+  tabs.closeAllTabs()
+  await router.push('/dashboard')
+}
+
 async function activatePrimary(tabId: string) {
   tabs.activatePrimaryTab(tabId)
   await router.push(tabId)
@@ -238,6 +243,7 @@ const activeCompanyName = computed(() => company.activeCompany?.name ?? 'PT Maju
         :active-id="activePrimaryId"
         @activate="activatePrimary"
         @close="closePrimary"
+        @close-all="closeAllPrimaryTabs"
         @mobile-menu="ui.openMobileSidebar()"
       />
 

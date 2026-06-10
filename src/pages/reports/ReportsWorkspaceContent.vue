@@ -205,9 +205,24 @@ const activeSectionIndex = computed(() =>
     0,
   ),
 )
-const activeSectionItems = computed(() => activeSection.value?.children.filter(matchesSearch) ?? [])
+const searchQuery = computed(() => search.value.trim().toLowerCase())
+const visibleReportItems = computed(() => {
+  if (searchQuery.value) {
+    return accessibleSections.value.flatMap((section, sectionIndex) =>
+      section.children
+        .filter(matchesSearch)
+        .map((item) => ({ item, section, sectionIndex })),
+    )
+  }
+
+  return (activeSection.value?.children ?? []).map((item) => ({
+    item,
+    section: activeSection.value,
+    sectionIndex: activeSectionIndex.value,
+  }))
+})
 const activeSectionHasFrontendOnlyItems = computed(() =>
-  activeSectionItems.value.some((item) => item.frontendOnly),
+  visibleReportItems.value.some(({ item }) => item.frontendOnly),
 )
 
 const allReportItems = computed(() => reportMenuSections.flatMap((section) => section.children))
@@ -287,41 +302,37 @@ function selectSection(section: SidebarMenuSection) {
 
   <section
     v-else
-    class="workspace-card tablet-workspace-card tablet-workspace-card-gap flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-b-3xl rounded-tr-3xl border border-slate-200 bg-white shadow-sm"
+    class="reports-page workspace-card flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-b-3xl rounded-tr-3xl border border-slate-200 bg-white shadow-sm"
   >
-    <header class="flex flex-none flex-col gap-4 border-b border-slate-100 p-5">
-      <div class="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+    <header class="reports-page__header flex flex-none flex-col border-b border-slate-100 px-4 py-3 lg:px-5">
+      <div class="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(260px,380px)] md:items-center">
         <div class="min-w-0">
-          <p class="text-xs font-bold uppercase tracking-wide text-[#1d81af]">Daftar</p>
-          <h1 class="mt-1 truncate text-2xl font-black tracking-tight text-slate-950">
+          <h1 class="truncate text-xl font-black tracking-tight text-slate-950 lg:text-2xl">
             {{ activeSection?.label ?? 'Semua Laporan' }}
           </h1>
-          <p class="mt-1 text-sm font-semibold text-slate-500">
-            Pilih menu laporan di sidebar untuk menampilkan daftar laporan pada kategori tersebut.
-          </p>
         </div>
-        <label class="relative block min-w-0 xl:w-[420px]">
+        <label class="relative block min-w-0">
           <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             v-model="search"
             type="search"
-            class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#24a1db] focus:bg-white focus:ring-2 focus:ring-[#e9f6fb]"
+            class="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#24a1db] focus:bg-white focus:ring-2 focus:ring-[#e9f6fb]"
             placeholder="Cari laporan"
           />
         </label>
       </div>
     </header>
 
-    <div class="grid min-h-0 min-w-0 flex-1 overflow-hidden md:grid-cols-[272px_minmax(0,1fr)]">
-      <aside class="hidden min-h-0 border-r border-white/10 bg-[#06131e] p-2 text-white md:block">
-        <div class="space-y-1">
+    <div class="grid min-h-0 min-w-0 flex-1 overflow-hidden md:grid-cols-[244px_minmax(0,1fr)] xl:grid-cols-[272px_minmax(0,1fr)]">
+      <aside class="report-category-sidebar hidden min-h-0 overflow-hidden border-r border-white/10 bg-[#06131e] p-2 text-white md:block">
+        <div class="workspace-scrollbar report-category-sidebar__scroll h-full min-h-0 space-y-1 overflow-y-auto pr-1">
           <button
             v-for="section in accessibleSections"
             :key="section.id"
             type="button"
             :class="
               cn(
-                'group flex min-h-10 w-full items-center gap-3 px-4 text-left text-sm font-semibold transition',
+                'group flex min-h-9 w-full items-center gap-3 px-3 text-left text-sm font-semibold transition',
                 section.id === activeSidebarSectionId
                   ? 'rounded-2xl bg-[#b4db24] text-[#06131e]'
                   : 'rounded-xl text-white/72 hover:bg-white/10 hover:text-white',
@@ -352,30 +363,32 @@ function selectSection(section: SidebarMenuSection) {
         </div>
       </aside>
 
-      <div class="workspace-scrollbar min-h-0 min-w-0 overflow-y-auto p-5">
+      <div class="workspace-scrollbar report-list-panel min-h-0 min-w-0 overflow-y-auto p-4 lg:p-5">
         <div v-if="accessibleSections.length === 0" class="rounded-2xl border border-dashed border-slate-200 p-8 text-center">
           <p class="text-sm font-bold text-slate-600">Tidak ada laporan yang cocok.</p>
         </div>
 
-        <div v-else class="space-y-4">
+        <div v-else class="space-y-3">
           <div
             v-if="activeSectionHasFrontendOnlyItems"
-            class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900"
+            class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900"
           >
             Catatan: sebagian daftar laporan pada menu ini baru disimpan di frontend dan belum memiliki endpoint backend.
           </div>
 
           <section class="space-y-3">
-            <h2 class="text-sm font-black text-slate-700">{{ activeSection?.label }}</h2>
-            <div class="grid grid-cols-[repeat(auto-fill,minmax(142px,1fr))] gap-3">
+            <h2 class="text-sm font-black text-slate-700">
+              {{ searchQuery ? 'Hasil pencarian' : activeSection?.label }}
+            </h2>
+            <div class="grid grid-cols-[repeat(auto-fill,minmax(136px,1fr))] gap-3 xl:grid-cols-[repeat(auto-fill,minmax(148px,1fr))]">
               <button
-                v-for="(item, itemIndex) in activeSectionItems"
+                v-for="({ item, sectionIndex }, itemIndex) in visibleReportItems"
                 :key="item.id"
                 type="button"
                 :class="
                   cn(
-                    'group relative flex min-h-32 flex-col items-center justify-center gap-3 rounded-md border px-3 py-4 text-center text-sm font-medium leading-snug transition hover:-translate-y-0.5 hover:shadow-lg',
-                    cardTone(activeSectionIndex, itemIndex).card,
+                    'group relative flex min-h-28 flex-col items-center justify-center gap-2.5 rounded-md border px-3 py-3 text-center text-sm font-medium leading-snug transition hover:-translate-y-0.5 hover:shadow-lg lg:min-h-32 lg:gap-3 lg:py-4',
+                    cardTone(sectionIndex, itemIndex).card,
                   )
                 "
                 @click="openReport(item)"
@@ -389,7 +402,7 @@ function selectSection(section: SidebarMenuSection) {
                 <component
                   :is="cardIcon(item)"
                   :class="
-                    cn('h-9 w-9 transition group-hover:scale-105', cardTone(activeSectionIndex, itemIndex).icon)
+                    cn('h-9 w-9 transition group-hover:scale-105', cardTone(sectionIndex, itemIndex).icon)
                   "
                   stroke-width="1.8"
                 />
@@ -397,10 +410,10 @@ function selectSection(section: SidebarMenuSection) {
               </button>
             </div>
             <div
-              v-if="activeSectionItems.length === 0"
+              v-if="visibleReportItems.length === 0"
               class="rounded-2xl border border-dashed border-slate-200 p-8 text-center"
             >
-              <p class="text-sm font-bold text-slate-600">Tidak ada laporan yang cocok di menu ini.</p>
+              <p class="text-sm font-bold text-slate-600">Tidak ada laporan yang cocok.</p>
             </div>
           </section>
         </div>

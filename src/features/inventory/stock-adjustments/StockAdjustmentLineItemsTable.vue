@@ -84,6 +84,9 @@ function isNegativeStock(row: Record<string, unknown>) {
 async function onProductSelected(rowIndex: number) {
   await nextTick()
   applyAverageCost(rowIndex)
+  if (!props.readonly && rowIndex === props.rows.length - 1 && props.rows[rowIndex]?.product_id) {
+    emit('add')
+  }
 }
 
 async function onWarehouseSelected(rowIndex: number) {
@@ -109,6 +112,15 @@ function onAdjustmentTypeChange(rowIndex: number, event: Event) {
   const target = event.target instanceof HTMLSelectElement ? event.target : null
   setFieldValue(`${props.name}.${rowIndex}.adjustment_type`, target?.value ?? 'increase')
 }
+
+async function removeRow(rowIndex: number) {
+  const shouldRestoreBlank = props.rows.length <= 1
+  emit('remove', rowIndex)
+  if (shouldRestoreBlank) {
+    await nextTick()
+    emit('add')
+  }
+}
 </script>
 
 <template>
@@ -117,6 +129,7 @@ function onAdjustmentTypeChange(rowIndex: number, event: Event) {
       <table class="min-w-[1180px] divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50 text-left text-xs font-black uppercase text-slate-500">
           <tr>
+            <th class="w-14 px-3 py-2 text-center">No</th>
             <th class="w-64 px-3 py-2">Product</th>
             <th class="w-56 px-3 py-2">Warehouse</th>
             <th class="w-40 px-3 py-2">Adjustment Type</th>
@@ -132,6 +145,9 @@ function onAdjustmentTypeChange(rowIndex: number, event: Event) {
         </thead>
         <tbody class="divide-y divide-slate-100">
           <tr v-for="(row, rowIndex) in rows" :key="rowIndex">
+            <td class="px-3 py-2 text-center align-top text-xs font-bold tabular-nums text-slate-500">
+              {{ rowIndex + 1 }}
+            </td>
             <td class="px-3 py-2 align-top">
               <TransactionSearchableSelect
                 :name="`${name}.${rowIndex}.product_id`"
@@ -236,14 +252,11 @@ function onAdjustmentTypeChange(rowIndex: number, event: Event) {
               <FormErrorMessage :name="`${name}.${rowIndex}.project_id`" />
             </td>
             <td class="px-3 py-2 text-right align-top">
-              <BaseButton v-if="!readonly" variant="secondary" size="sm" @click="emit('remove', rowIndex)">Remove</BaseButton>
+              <BaseButton v-if="!readonly" variant="secondary" size="sm" @click="removeRow(rowIndex)">Remove</BaseButton>
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
-    <div v-if="!readonly" class="border-t border-slate-200 bg-slate-50 px-3 py-3">
-      <BaseButton variant="secondary" size="sm" @click="emit('add')">Add row</BaseButton>
     </div>
   </div>
 </template>

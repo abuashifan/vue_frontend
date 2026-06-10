@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed, nextTick, ref } from 'vue'
+
 import BaseButton from '@/components/ui/BaseButton.vue'
 import FormMoneyInput from '@/components/form/FormMoneyInput.vue'
 import FormNumberInput from '@/components/form/FormNumberInput.vue'
@@ -13,7 +15,7 @@ export type LineItemColumn = {
   placeholder?: string
 }
 
-defineProps<{
+const props = defineProps<{
   name: string
   rows: Record<string, unknown>[]
   columns: LineItemColumn[]
@@ -24,6 +26,40 @@ const emit = defineEmits<{
   add: []
   remove: [index: number]
 }>()
+
+const autoAppendKeys = ['product_id', 'account_id', 'sales_invoice_id', 'vendor_bill_id']
+const pendingAutoAppend = ref(false)
+const autoAppendKey = computed(() => {
+  const preferred = props.columns.find((column) => autoAppendKeys.includes(column.key))
+  return preferred?.key ?? props.columns[0]?.key ?? ''
+})
+
+function hasValue(value: unknown) {
+  if (value === null || value === undefined || value === '') return false
+  if (typeof value === 'string') return value.trim() !== ''
+  return true
+}
+
+async function maybeAppendRow(rowIndex: number) {
+  if (props.readonly || pendingAutoAppend.value || rowIndex !== props.rows.length - 1) return
+  await nextTick()
+  const key = autoAppendKey.value
+  const row = props.rows[rowIndex]
+  if (!key || !row || !hasValue(row[key])) return
+  pendingAutoAppend.value = true
+  emit('add')
+  await nextTick()
+  pendingAutoAppend.value = false
+}
+
+async function removeRow(rowIndex: number) {
+  const shouldRestoreBlank = props.rows.length <= 1
+  emit('remove', rowIndex)
+  if (shouldRestoreBlank) {
+    await nextTick()
+    emit('add')
+  }
+}
 </script>
 
 <template>
@@ -32,12 +68,16 @@ const emit = defineEmits<{
       <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50 text-left text-xs font-black uppercase text-slate-500">
           <tr>
+            <th class="w-14 px-3 py-2 text-center">No</th>
             <th v-for="column in columns" :key="column.key" class="px-3 py-2">{{ column.label }}</th>
             <th class="sticky right-0 w-20 bg-slate-50 px-3 py-2 text-right shadow-[-12px_0_18px_-18px_rgba(15,23,42,0.35)]">Action</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          <tr v-for="(_, rowIndex) in rows" :key="rowIndex">
+          <tr v-for="(_, rowIndex) in rows" :key="rowIndex" @change.capture="maybeAppendRow(rowIndex)">
+            <td class="px-3 py-2 text-center align-top text-xs font-bold tabular-nums text-slate-500">
+              {{ rowIndex + 1 }}
+            </td>
             <td v-for="column in columns" :key="column.key" class="min-w-36 px-3 py-2 align-top">
               <FormSelect
                 v-if="column.type === 'select'"
@@ -66,14 +106,11 @@ const emit = defineEmits<{
               />
             </td>
             <td class="sticky right-0 bg-white px-3 py-2 text-right align-top shadow-[-12px_0_18px_-18px_rgba(15,23,42,0.35)]">
-              <BaseButton v-if="!readonly" variant="secondary" size="sm" @click="emit('remove', rowIndex)">Remove</BaseButton>
+              <BaseButton v-if="!readonly" variant="secondary" size="sm" @click="removeRow(rowIndex)">Remove</BaseButton>
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
-    <div v-if="!readonly" class="border-t border-slate-200 bg-slate-50 px-3 py-3">
-      <BaseButton variant="secondary" size="sm" @click="emit('add')">Add row</BaseButton>
     </div>
   </div>
 </template>

@@ -16,6 +16,7 @@ defineProps<{
 const emit = defineEmits<{
   activate: [tabId: string]
   close: [tabId: string]
+  closeAll: []
   mobileMenu: []
 }>()
 
@@ -44,7 +45,13 @@ async function handleLogout() {
       <Menu class="h-5 w-5" />
     </button>
 
-    <PrimaryTabsBar :tabs="tabs" :active-id="activeId" @activate="(id) => emit('activate', id)" @close="(id) => emit('close', id)" />
+    <PrimaryTabsBar
+      :tabs="tabs"
+      :active-id="activeId"
+      @activate="(id) => emit('activate', id)"
+      @close="(id) => emit('close', id)"
+      @close-all="emit('closeAll')"
+    />
 
     <div class="flex items-center gap-2">
       <IconButton variant="ghost" size="md">

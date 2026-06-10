@@ -333,7 +333,8 @@ function hydrate(values: Record<string, unknown>, markDirty = false) {
   const normalizedValues = normalizeDateFields(values, dateFieldKeys.value)
   hydrating.value = true
   form.resetForm({ values: normalizedValues })
-  setDraft(normalizedValues)
+  ensureTrailingLineItem()
+  setDraft(form.values)
   setDirty(markDirty)
   setTimeout(() => {
     hydrating.value = false
@@ -425,13 +426,79 @@ watch(
 
 function addLine() {
   if (!props.config.lineItems) return
-  form.setFieldValue(props.config.lineItems.key, [...lineItems.value, { ...props.config.lineItems.defaultRow }])
+  form.setFieldValue(props.config.lineItems.key, [...lineItems.value, { ...props.config.lineItems.defaultRow }], false)
 }
 
 function removeLine(index: number) {
   if (!props.config.lineItems) return
   const next = lineItems.value.filter((_, current) => current !== index)
   form.setFieldValue(props.config.lineItems.key, next)
+}
+
+function hasLineValue(value: unknown) {
+  if (value === null || value === undefined || value === '') return false
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0
+  if (typeof value === 'string') return value.trim() !== '' && Number(value) !== 0
+  return true
+}
+
+function isBlankLineItem(line: Record<string, unknown>) {
+  const identityKeys = [
+    'product_id',
+    'account_id',
+    'sales_invoice_id',
+    'vendor_bill_id',
+    'sales_order_line_id',
+    'purchase_order_line_id',
+    'purchase_request_line_id',
+    'sales_invoice_line_id',
+    'vendor_bill_line_id',
+    'source_line_id',
+  ]
+  if (identityKeys.some((key) => hasLineValue(line[key]))) return false
+  if (typeof line.description === 'string' && line.description.trim() !== '') return false
+  if (typeof line.reason === 'string' && line.reason.trim() !== '') return false
+
+  const amountKeys = [
+    'amount',
+    'quantity',
+    'unit_price',
+    'estimated_unit_price',
+    'unit_cost',
+    'discount_value',
+    'discount_amount',
+    'tax_rate',
+    'tax_amount',
+    'line_total',
+    'debit',
+    'credit',
+  ]
+  return !amountKeys.some((key) => key !== 'quantity' && hasLineValue(line[key]))
+}
+
+function filledLineItems() {
+  return lineItems.value.filter((line) => !isBlankLineItem(line))
+}
+
+function trimBlankLineItemsForValidation() {
+  if (!props.config.lineItems) return
+  const filled = filledLineItems()
+  if (filled.length === lineItems.value.length) return
+  form.setFieldValue(props.config.lineItems.key, filled, false)
+}
+
+function ensureTrailingLineItem() {
+  if (readonly.value || !props.config.lineItems) return
+  const lines = lineItems.value
+  const blank = { ...props.config.lineItems.defaultRow }
+  if (lines.length === 0) {
+    form.setFieldValue(props.config.lineItems.key, [blank], false)
+    return
+  }
+  const lastLine = lines[lines.length - 1]
+  if (lastLine && !isBlankLineItem(lastLine)) {
+    form.setFieldValue(props.config.lineItems.key, [...lines, blank], false)
+  }
 }
 
 function payload(values: Record<string, unknown>) {
@@ -450,8 +517,9 @@ function payload(values: Record<string, unknown>) {
     result.payment_term_id = result.payment_term_id === '' ? null : result.payment_term_id
   }
   if (props.config.lineItems) {
+    const payloadLines = filledLineItems()
     if (isStockAdjustment.value) {
-      result[props.config.lineItems.key] = lineItems.value.map((line, index) => ({
+      result[props.config.lineItems.key] = payloadLines.map((line, index) => ({
         ...line,
         product_id: line.product_id === '' ? null : line.product_id,
         unit_id: line.unit_id === '' ? null : line.unit_id,
@@ -466,9 +534,9 @@ function payload(values: Record<string, unknown>) {
       return result
     }
 
-    const firstLine = lineItems.value.find((line) => Object.keys(line).length > 0) ?? {}
+    const firstLine = payloadLines.find((line) => Object.keys(line).length > 0) ?? {}
     const priceField = 'estimated_unit_price' in firstLine ? 'estimated_unit_price' : 'amount' in firstLine && !('unit_price' in firstLine) ? 'amount' : 'unit_price'
-    const totals = calculateTransactionTotals(lineItems.value, {
+    const totals = calculateTransactionTotals(payloadLines, {
       priceField,
       headerDiscountType: result.header_discount_type,
       headerDiscountValue: result.header_discount_value,
@@ -535,10 +603,12 @@ async function save(closeAfter = false) {
     serverErrors.value = ['Journal total debit and credit must be balanced before posting or saving.']
     return
   }
+  trimBlankLineItemsForValidation()
   const valid = await form.validate()
   const stockAdjustmentValid = validateStockAdjustment()
   if (!valid.valid || !stockAdjustmentValid) {
     serverErrors.value = [...new Set([...Object.values(valid.errors).map(String), ...serverErrors.value])]
+    ensureTrailingLineItem()
     return
   }
   saving.value = true
