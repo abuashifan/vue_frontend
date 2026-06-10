@@ -28,10 +28,71 @@ export function useTransactionForm(options: {
 
   const draft = useTransactionDraftState(options.secondaryTabId, form)
 
+  function asRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+  }
+
+  function stringValue(value: unknown, fallback: string | null = null) {
+    if (value === null || value === undefined || value === '') return fallback
+    return String(value)
+  }
+
+  function numberValue(value: unknown, fallback = 0) {
+    if (value === null || value === undefined || value === '') return fallback
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
+
+  function normalizeResponseLine(line: unknown) {
+    const row = asRecord(line)
+    const product = asRecord(row.product)
+    const unit = asRecord(row.unit)
+    const productCode = row.product_code ?? product.product_code ?? product.code ?? product.sku
+    const productName = product.name ?? product.product_name ?? product.label
+    const description = row.description ?? productName ?? ''
+    const unitName = row.unit_name ?? unit.name ?? unit.unit_name ?? product.unit_name
+    const unitId = row.unit_id ?? unit.id ?? product.unit_id
+    const price = row.unit_price ?? row.estimated_unit_price ?? row.amount ?? 0
+
+    return {
+      ...row,
+      product_id: stringValue(row.product_id ?? product.id, ''),
+      product_code: stringValue(productCode, ''),
+      description: String(description ?? ''),
+      quantity: numberValue(row.quantity, 1),
+      unit_id: stringValue(unitId),
+      unit_name: stringValue(unitName),
+      warehouse_id: stringValue(row.warehouse_id),
+      department_id: stringValue(row.department_id),
+      project_id: stringValue(row.project_id),
+      quotation_line_id: stringValue(row.quotation_line_id),
+      sales_order_line_id: stringValue(row.sales_order_line_id),
+      delivery_order_line_id: stringValue(row.delivery_order_line_id),
+      proforma_invoice_line_id: stringValue(row.proforma_invoice_line_id),
+      purchase_request_line_id: stringValue(row.purchase_request_line_id),
+      purchase_order_line_id: stringValue(row.purchase_order_line_id),
+      vendor_bill_line_id: stringValue(row.vendor_bill_line_id),
+      source_line_id: stringValue(row.source_line_id),
+      unit_price: numberValue(price),
+      estimated_unit_price: numberValue(row.estimated_unit_price ?? price),
+      amount: numberValue(row.amount ?? row.line_total ?? price),
+      discount_value: numberValue(row.discount_value),
+      discount_amount: numberValue(row.discount_amount),
+      tax_rate: numberValue(row.tax_rate),
+      tax_amount: numberValue(row.tax_amount),
+      line_total: numberValue(row.line_total),
+    }
+  }
+
   function normalizedResponseData(raw: unknown) {
     const res = raw as { data?: ApiResponse<Record<string, unknown>> }
     const data = res.data?.data
-    return data && typeof data === 'object' ? normalizeDateFields(data, KNOWN_DATE_FIELDS) : null
+    if (!data || typeof data !== 'object') return null
+    const normalized = normalizeDateFields(data, KNOWN_DATE_FIELDS)
+    if (Array.isArray(normalized.lines)) {
+      normalized.lines = normalized.lines.map((line) => normalizeResponseLine(line))
+    }
+    return normalized
   }
 
   function normalizeLineValue(value: unknown) {
@@ -177,7 +238,7 @@ export function useTransactionForm(options: {
     const valid = await form.validate()
     if (!valid.valid) {
       ensureTrailingBlankLine()
-      return
+      return false
     }
 
     loading.value = true
@@ -198,7 +259,7 @@ export function useTransactionForm(options: {
       }
       ensureTrailingBlankLine()
       draft.clearDraft()
-      return true
+      return savedData ?? payload
     } catch (cause) {
       applyLaravelValidationErrors(form, (cause as { errors?: Record<string, string[]> } | null)?.errors)
       error.value = toErrorMessage(cause)

@@ -153,6 +153,11 @@ function closeSecondary(tabId?: string) {
   tabs.closeSecondaryTab(props.config.primaryTabId, tabId)
 }
 
+function showNotice(message: string) {
+  actionNotice.value = message
+  actionError.value = null
+}
+
 function supportsActionForStatus(action: TransactionActionConfig, status: string) {
   if (!action.whenStatusIn?.length) return true
   return action.whenStatusIn.includes(status.toLowerCase())
@@ -225,7 +230,14 @@ async function confirmBulkLifecycleAction(payload: { reason: string }) {
     @row-click="(row) => openEdit(row.id, row.number)"
   >
     <template #form="{ tab }">
-      <TransactionFormPanel :config="config" :tab="tab ?? null" @close="closeSecondary(tab?.id)" @changed="reloadKey += 1" />
+      <TransactionFormPanel
+        :key="tab?.id ?? 'empty'"
+        :config="config"
+        :tab="tab ?? null"
+        @close="closeSecondary(tab?.id)"
+        @changed="reloadKey += 1"
+        @notice="showNotice"
+      />
     </template>
   </WorkspaceModule>
   <div v-if="actionNotice" class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{{ actionNotice }}</div>

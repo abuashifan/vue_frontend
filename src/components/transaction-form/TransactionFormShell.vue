@@ -5,6 +5,7 @@ defineProps<{
   loading?: boolean
   error?: string | null
   readonly?: boolean
+  closeDisabled?: boolean
 }>()
 
 defineEmits<{
@@ -41,7 +42,7 @@ defineEmits<{
         </div>
         <div class="workspace-table-scroll flex min-w-0 flex-nowrap justify-start gap-2 overflow-x-auto md:justify-end">
           <slot name="actions-right" />
-          <BaseButton class="shrink-0" variant="secondary" size="sm" type="button" @click="$emit('close')">Close</BaseButton>
+          <BaseButton class="shrink-0" variant="secondary" size="sm" type="button" :disabled="closeDisabled" @click="$emit('close')">Close</BaseButton>
         </div>
       </div>
     </div>

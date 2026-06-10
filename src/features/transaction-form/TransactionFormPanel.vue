@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { FileText, History, Info, ListTree, Save, Search } from 'lucide-vue-next'
+import { ArrowRight, Check, FileText, History, Info, ListTree, Search } from 'lucide-vue-next'
 
 import FormDateInput from '@/components/form/FormDateInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -21,11 +21,11 @@ import { useTransactionForm } from '@/composables/transaction-form/useTransactio
 import { useTransactionActions } from '@/composables/transaction-form/useTransactionActions'
 import { useTransactionTotals } from '@/composables/transaction-form/useTransactionTotals'
 import { toErrorMessage } from '@/composables/transaction-form/useTransactionValidation'
-import type { RuntimeTransactionFormConfig, TransactionActionConfig, TransactionConversionConfig } from '@/composables/transaction-form/types'
+import type { RuntimeTransactionFormConfig, TransactionActionConfig, TransactionActionKey, TransactionConversionConfig } from '@/composables/transaction-form/types'
 import { usePermission } from '@/composables/usePermission'
 import { contactsService } from '@/services/master-data/contacts.service'
 import { paymentTermsService, type PaymentTerm } from '@/services/master-data/paymentTerms.service'
-import { getCompanySettings } from '@/services/settings/companySettings.service'
+import { getCompanySettings, getCompanyWorkflowSettings, type CompanyWorkflowSettings } from '@/services/settings/companySettings.service'
 import { checkSourceDocumentAvailability, type SourceDocument } from '@/services/transaction/sourceDocuments.service'
 import { useWorkspaceTabsStore } from '@/stores/workspaceTabsStore'
 import type { SecondaryTab } from '@/stores/workspaceTabsStore'
@@ -39,6 +39,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   changed: []
+  notice: [message: string]
 }>()
 
 const mode = (props.tab?.mode ?? 'detail') as 'create' | 'edit' | 'detail'
@@ -61,6 +62,9 @@ const paymentTerms = ref<PaymentTerm[]>([])
 const defaultPaymentTermId = ref<string | number | null>(null)
 const dueDateTouched = ref(false)
 const applyingDueDate = ref(false)
+const workflowSettings = ref<CompanyWorkflowSettings | null>(null)
+const workflowError = ref<string | null>(null)
+const submitMode = ref<'submit' | 'next' | null>(null)
 useTransactionTotals(tx.form, { priceField: props.config.lineProduct?.priceField })
 
 const partnerName =
@@ -107,6 +111,7 @@ const selectedPaymentTerm = computed(() => {
   const id = tx.form.values.payment_term_id
   return paymentTerms.value.find((term) => String(term.id) === String(id ?? '')) ?? null
 })
+const workflowBusy = computed(() => submitMode.value !== null || tx.loading.value)
 const visibleLifecycleActions = computed(() =>
   props.config.actions.filter((action) => {
     if (action.key === 'save' || !entityId) return false
@@ -273,6 +278,20 @@ async function loadPaymentTermDefaults() {
   }
 }
 
+async function ensureWorkflowSettings() {
+  if (workflowSettings.value) return workflowSettings.value
+  workflowSettings.value = await getCompanyWorkflowSettings()
+  return workflowSettings.value
+}
+
+async function loadWorkflowSettings() {
+  try {
+    await ensureWorkflowSettings()
+  } catch {
+    workflowSettings.value = null
+  }
+}
+
 function ensureDefaultDate() {
   if (mode !== 'create') return
   const currentValue = tx.form.values[props.config.dateField]
@@ -283,6 +302,7 @@ function ensureDefaultDate() {
 onMounted(() => {
   ensureDefaultDate()
   void loadPaymentTermDefaults()
+  void loadWorkflowSettings()
 })
 
 function sourceLabel(type?: string | null) {
@@ -294,8 +314,101 @@ function sourceLabel(type?: string | null) {
     .join(' ')
 }
 
+function unwrapRecord(raw: unknown) {
+  const data = (raw as { data?: { data?: unknown } } | null)?.data?.data
+  return data && typeof data === 'object' ? (data as Record<string, unknown>) : null
+}
+
+function recordId(record: Record<string, unknown>) {
+  const id = record.id
+  return typeof id === 'string' || typeof id === 'number' ? id : null
+}
+
+function recordStatus(record: Record<string, unknown>) {
+  return String(record.status ?? record.state ?? '').toLowerCase()
+}
+
+function autoWorkflowAction(): TransactionActionKey | null {
+  const actionsByDocument: Partial<Record<string, TransactionActionKey>> = {
+    'sales.quotations': 'approve',
+    'sales.orders': 'confirm',
+    'sales.delivery-orders': 'deliver',
+    'sales.proformas': 'issue',
+    'sales.invoices': 'post',
+  }
+  return actionsByDocument[props.config.documentType] ?? null
+}
+
+function shouldSkipAutoWorkflow(action: TransactionActionKey, status: string) {
+  if (!status) return false
+  const terminalStatusByAction: Partial<Record<TransactionActionKey, string[]>> = {
+    approve: ['approved', 'accepted', 'converted', 'cancelled', 'rejected'],
+    confirm: ['confirmed', 'partially_delivered', 'delivered', 'partially_invoiced', 'closed', 'cancelled'],
+    deliver: ['delivered', 'partially_invoiced', 'invoiced', 'voided', 'cancelled'],
+    issue: ['issued', 'accepted', 'cancelled'],
+    post: ['posted', 'partially_paid', 'paid', 'voided'],
+  }
+  return terminalStatusByAction[action]?.includes(status) ?? false
+}
+
+async function runAutoWorkflow(savedRecord: Record<string, unknown>) {
+  const settings = await ensureWorkflowSettings()
+  if (settings.transaction_workflow_mode !== 'simple_auto_post' || settings.auto_post_transactions !== true) return savedRecord
+
+  const actionKey = autoWorkflowAction()
+  if (!actionKey || !props.config.apiService.action) return savedRecord
+  const action = props.config.actions.find((item) => item.key === actionKey)
+  if (!action) return savedRecord
+  if (action.permission && !can(action.permission)) {
+    throw new Error(`Permission ${action.permission} diperlukan untuk menjalankan auto workflow.`)
+  }
+
+  const id = recordId(savedRecord)
+  if (id == null || shouldSkipAutoWorkflow(actionKey, recordStatus(savedRecord))) return savedRecord
+
+  const raw = await props.config.apiService.action(actionKey, id)
+  return unwrapRecord(raw) ?? savedRecord
+}
+
+function finishSubmit(message: string) {
+  emit('changed')
+  emit('notice', message)
+  tabs.clearDraftState(secondaryTabId)
+}
+
+async function saveAndContinue(target: 'submit' | 'next') {
+  if (workflowBusy.value || tx.isReadonly.value) return
+  workflowError.value = null
+  conversionError.value = null
+  conversionNotice.value = null
+  submitMode.value = target
+  try {
+    const saved = await tx.save()
+    if (!saved) return
+    const finalRecord = await runAutoWorkflow(saved)
+    const number = String(finalRecord[props.config.numberField] ?? saved[props.config.numberField] ?? formTitle.value)
+    finishSubmit(`${props.config.title} ${number} submitted.`)
+
+    if (target === 'submit') {
+      emit('close')
+      return
+    }
+
+    if (secondaryTabId) tabs.closeSecondaryTab(props.config.primaryTabId, secondaryTabId)
+    tabs.openCreateSecondaryTab(props.config.primaryTabId, { label: 'Data Baru' })
+  } catch (cause) {
+    workflowError.value = toErrorMessage(cause)
+  } finally {
+    submitMode.value = null
+  }
+}
+
 async function onSubmit() {
-  if (await tx.save()) emit('changed')
+  await saveAndContinue('submit')
+}
+
+async function onNext() {
+  await saveAndContinue('next')
 }
 
 async function runLifecycleAction(action: TransactionActionConfig, payload?: unknown) {
@@ -396,7 +509,13 @@ function applySourceDocument(document: SourceDocument) {
 
 <template>
   <form class="h-full min-h-0 min-w-0" @submit.prevent="onSubmit">
-    <TransactionFormShell :loading="tx.loading.value" :error="tx.error.value" :readonly="tx.isReadonly.value" @close="emit('close')">
+    <TransactionFormShell
+      :loading="tx.loading.value"
+      :error="tx.error.value"
+      :readonly="tx.isReadonly.value"
+      :close-disabled="workflowBusy"
+      @close="emit('close')"
+    >
       <template #header>
         <div class="grid min-w-0 gap-2 md:grid-cols-[minmax(240px,0.95fr)_minmax(0,2.15fr)] md:items-end">
           <div class="min-w-0">
@@ -480,6 +599,7 @@ function applySourceDocument(document: SourceDocument) {
       <template #validation>
         <TransactionValidationSummary />
         <p v-if="actions.actionError.value" class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{{ actions.actionError.value }}</p>
+        <p v-if="workflowError" class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{{ workflowError }}</p>
         <p v-if="conversionError" class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{{ conversionError }}</p>
         <p v-if="conversionNotice" class="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{{ conversionNotice }}</p>
       </template>
@@ -591,9 +711,28 @@ function applySourceDocument(document: SourceDocument) {
             {{ action.label }}
           </BaseButton>
         </TransactionActionBar>
-        <BaseButton v-if="!tx.isReadonly.value" variant="primary" size="sm" type="submit" :loading="tx.loading.value">
-          <Save class="h-4 w-4" />
-          Save
+        <BaseButton
+          v-if="!tx.isReadonly.value"
+          variant="primary"
+          size="sm"
+          type="submit"
+          :loading="submitMode === 'submit'"
+          :disabled="workflowBusy"
+        >
+          <Check class="h-4 w-4" />
+          Submit
+        </BaseButton>
+        <BaseButton
+          v-if="!tx.isReadonly.value"
+          variant="secondary"
+          size="sm"
+          type="button"
+          :loading="submitMode === 'next'"
+          :disabled="workflowBusy"
+          @click="onNext"
+        >
+          <ArrowRight class="h-4 w-4" />
+          Next
         </BaseButton>
       </template>
     </TransactionFormShell>
