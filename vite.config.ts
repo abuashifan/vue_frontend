@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
     ],
     server: {
+      allowedHosts: ['.trycloudflare.com', 'app.finlite.my.id', '.finlite.my.id'],
       watch: {
         ignored: [
           '**/node_modules/**',
