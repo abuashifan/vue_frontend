@@ -160,6 +160,7 @@ onMounted(fetchLedger)
             <tr>
               <th class="px-4 py-3">Date</th>
               <th class="px-4 py-3">Document</th>
+              <th v-if="isAr" class="px-4 py-3">AR Account</th>
               <th class="px-4 py-3">Description</th>
               <th class="px-4 py-3 text-right">Debit</th>
               <th class="px-4 py-3 text-right">Credit</th>
@@ -172,6 +173,11 @@ onMounted(fetchLedger)
               <td class="px-4 py-3">
                 <p class="font-black text-slate-900">{{ row.document_number ?? '-' }}</p>
                 <p class="text-xs font-semibold text-slate-500">{{ documentLabel(row.document_type) }}</p>
+              </td>
+              <td v-if="isAr" class="px-4 py-3">
+                <span class="inline-flex max-w-[190px] items-center truncate rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-600" :title="`${row.ar_account_code ?? ''} ${row.ar_account_name ?? ''}`.trim() || '-'">
+                  {{ row.ar_account_code ? `${row.ar_account_code} · ${row.ar_account_name ?? '-'}` : '-' }}
+                </span>
               </td>
               <td class="px-4 py-3 text-slate-600">{{ row.description ?? '-' }}</td>
               <td class="whitespace-nowrap px-4 py-3 text-right font-bold text-slate-800">{{ formatMoney(row.debit) }}</td>

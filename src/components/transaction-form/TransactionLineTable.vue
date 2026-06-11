@@ -61,9 +61,53 @@ const appliedDescriptions = ref<Record<number, string>>({})
 const productOptions = computed(() => products.value)
 const departmentOptions = computed(() => departments.value)
 const projectOptions = computed(() => projects.value)
-const hasLines = computed(() => fields.value.length > 0)
 const priceField = computed(() => props.productConfig.priceField ?? 'unit_price')
 const priceLabel = computed(() => props.productConfig.priceLabel ?? 'Unit Price')
+
+function hasLineValue(value: unknown) {
+  if (value === null || value === undefined || value === '') return false
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0
+  if (typeof value === 'string') return value.trim() !== '' && Number(value) !== 0
+  return true
+}
+
+function isBlankDisplayLine(line: TransactionLine) {
+  const identityKeys = [
+    'product_id',
+    'sales_order_line_id',
+    'purchase_order_line_id',
+    'purchase_request_line_id',
+    'quotation_line_id',
+    'sales_invoice_line_id',
+    'delivery_order_line_id',
+    'vendor_bill_line_id',
+    'source_line_id',
+  ]
+  if (identityKeys.some((key) => hasLineValue(line[key]))) return false
+  if (typeof line.description === 'string' && line.description.trim() !== '') return false
+  if (Number(line.quantity ?? 1) > 1) return false
+
+  const amountKeys = [
+    'amount',
+    'unit_price',
+    'estimated_unit_price',
+    'discount_value',
+    'discount_amount',
+    'tax_rate',
+    'tax_amount',
+    'line_total',
+    'gross_amount',
+    'subtotal_after_discount',
+  ]
+  return !amountKeys.some((key) => hasLineValue(line[key]))
+}
+
+const visibleRows = computed(() =>
+  fields.value
+    .map((field, index) => ({ field, index, line: lineAt(index) }))
+    .filter((row) => !props.readonly || !isBlankDisplayLine(row.line)),
+)
+const hasVisibleLines = computed(() => visibleRows.value.length > 0)
 
 function blankLine(): TransactionLine {
   return {
@@ -201,23 +245,23 @@ onMounted(() => {
         </thead>
 
         <tbody class="divide-y divide-slate-100">
-          <tr v-if="!hasLines">
+          <tr v-if="!hasVisibleLines">
             <td colspan="12" class="px-6 py-10 text-center text-sm font-semibold text-slate-500">
               Belum ada line.
             </td>
           </tr>
 
-          <tr v-for="(row, index) in fields" :key="row.key" class="h-9 align-middle hover:bg-slate-50/60">
+          <tr v-for="(row, visibleIndex) in visibleRows" :key="row.field.key" class="h-9 align-middle hover:bg-slate-50/60">
             <td class="px-2 py-1 text-center align-middle text-xs font-bold tabular-nums text-slate-500">
-              {{ index + 1 }}
+              {{ isBlankDisplayLine(row.line) ? '' : visibleIndex + 1 }}
             </td>
             <td class="px-1.5 py-1 align-middle">
               <TransactionSearchableSelect
-                :name="`${name}[${index}].product_id`"
+                :name="`${name}[${row.index}].product_id`"
                 :options="productOptions"
                 option-value="id"
                 option-label="label"
-                :display-value="productDisplay(row.value as TransactionLine)"
+                :display-value="productDisplay(row.line)"
                 placeholder="Search product..."
                 empty-text="Produk tidak ditemukan"
                 loading-text="Memuat produk..."
@@ -231,12 +275,12 @@ onMounted(() => {
                 option-two-line
                 @open="resetProducts"
                 @search="searchProducts"
-                @select="selectProduct(index, $event)"
+                @select="selectProduct(row.index, $event)"
               />
             </td>
             <td class="px-1.5 py-1 align-middle">
               <Field
-                :name="`${name}[${index}].description`"
+                :name="`${name}[${row.index}].description`"
                 as="input"
                 type="text"
                 :disabled="readonly"
@@ -245,7 +289,7 @@ onMounted(() => {
             </td>
             <td class="px-1.5 py-1 align-middle">
               <Field
-                :name="`${name}[${index}].quantity`"
+                :name="`${name}[${row.index}].quantity`"
                 as="input"
                 type="number"
                 step="0.0001"
@@ -256,19 +300,19 @@ onMounted(() => {
             </td>
             <td class="px-1.5 py-1 align-middle">
               <span class="flex h-8 w-full items-center rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs text-slate-600">
-                {{ unitDisplay(row.value as TransactionLine) }}
+                {{ unitDisplay(row.line) }}
               </span>
             </td>
             <td class="px-1.5 py-1 align-middle">
               <TransactionFormattedNumberInput
-                :name="`${name}[${index}].${priceField}`"
+                :name="`${name}[${row.index}].${priceField}`"
                 :disabled="readonly"
               />
             </td>
             <td class="px-1.5 py-1 align-middle">
               <div class="flex min-w-0 gap-1.5">
                 <Field
-                  :name="`${name}[${index}].discount_type`"
+                  :name="`${name}[${row.index}].discount_type`"
                   as="select"
                   :disabled="readonly"
                   class="h-8 w-14 rounded-lg border border-slate-200 bg-white px-1.5 text-xs font-normal leading-none text-slate-700 outline-none transition focus:border-[#24a1db] focus:ring-2 focus:ring-[#e9f6fb] disabled:bg-slate-50"
@@ -277,14 +321,14 @@ onMounted(() => {
                   <option value="percent">%</option>
                 </Field>
                 <TransactionFormattedNumberInput
-                  :name="`${name}[${index}].discount_value`"
+                  :name="`${name}[${row.index}].discount_value`"
                   :disabled="readonly"
                 />
               </div>
             </td>
             <td class="px-1.5 py-1 align-middle">
               <Field
-                :name="`${name}[${index}].tax_rate`"
+                :name="`${name}[${row.index}].tax_rate`"
                 as="input"
                 type="number"
                 step="0.01"
@@ -295,17 +339,17 @@ onMounted(() => {
             </td>
             <td class="px-1.5 py-1 align-middle">
               <TransactionFormattedNumberInput
-                :name="`${name}[${index}].line_total`"
+                :name="`${name}[${row.index}].line_total`"
                 :disabled="true"
               />
             </td>
             <td class="px-1.5 py-1 align-middle">
               <TransactionSearchableSelect
-                :name="`${name}[${index}].department_id`"
+                :name="`${name}[${row.index}].department_id`"
                 :options="departmentOptions"
                 option-value="id"
                 option-label="label"
-                :display-value="dimensionDisplay(row.value as TransactionLine, 'department_id')"
+                :display-value="dimensionDisplay(row.line, 'department_id')"
                 placeholder="Department"
                 empty-text="Department tidak ditemukan"
                 loading-text="Memuat department..."
@@ -322,11 +366,11 @@ onMounted(() => {
             </td>
             <td class="px-1.5 py-1 align-middle">
               <TransactionSearchableSelect
-                :name="`${name}[${index}].project_id`"
+                :name="`${name}[${row.index}].project_id`"
                 :options="projectOptions"
                 option-value="id"
                 option-label="label"
-                :display-value="dimensionDisplay(row.value as TransactionLine, 'project_id')"
+                :display-value="dimensionDisplay(row.line, 'project_id')"
                 placeholder="Project"
                 empty-text="Project tidak ditemukan"
                 loading-text="Memuat project..."
@@ -342,7 +386,7 @@ onMounted(() => {
               />
             </td>
             <td class="sticky right-0 bg-white px-1.5 py-1 text-center align-middle shadow-[-12px_0_18px_-18px_rgba(15,23,42,0.35)]">
-              <IconButton variant="danger" size="sm" type="button" :disabled="readonly" @click="removeLine(index)">
+              <IconButton variant="danger" size="sm" type="button" :disabled="readonly" @click="removeLine(row.index)">
                 <Minus class="h-4 w-4" />
               </IconButton>
             </td>

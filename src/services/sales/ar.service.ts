@@ -13,6 +13,9 @@ export type ArLedgerMovement = {
   debit: number
   credit: number
   balance: number
+  ar_account_id?: number | null
+  ar_account_code?: string | null
+  ar_account_name?: string | null
   source_type?: string
   source_id?: number
 }
@@ -23,6 +26,7 @@ export type ArCustomerSummaryRow = {
   debit: number
   credit: number
   balance: number
+  ar_accounts?: Array<{ account_id: number | null; account_code: string | null; account_name: string | null }>
 }
 
 export type ArOpenInvoiceRow = {
@@ -32,6 +36,9 @@ export type ArOpenInvoiceRow = {
   due_date: string | null
   customer_id: number
   customer_name: string | null
+  ar_account_id?: number | null
+  ar_account_code?: string | null
+  ar_account_name?: string | null
   grand_total: number
   paid_amount: number
   returned_amount: number

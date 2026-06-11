@@ -39,7 +39,7 @@ const model = computed({
       class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#24a1db] focus:ring-4 focus:ring-[#e9f6fb] disabled:bg-slate-50"
       @blur="handleBlur"
     >
-      <option value="" disabled>{{ placeholder }}</option>
+      <option value="" :disabled="required">{{ placeholder }}</option>
       <option v-for="opt in options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </select>
   </FormField>

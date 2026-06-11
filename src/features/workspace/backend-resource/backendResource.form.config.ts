@@ -191,6 +191,15 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
           { key: 'notes', label: 'Catatan', kind: 'textarea', span: 3, rows: 2 },
         ],
       },
+      {
+        title: 'Akun Akuntansi',
+        description: 'Kosongkan jika ingin memakai akun default dari Pemetaan Akun.',
+        cols: 2,
+        fields: [
+          { key: 'receivable_account_id', label: 'Akun Piutang Usaha khusus', kind: 'select', placeholder: 'Default dari Pemetaan Akun', remoteOptions: { endpoint: '/master-data/chart-of-accounts', valueKey: 'id', params: { is_active: true, account_type: 'asset' } } },
+          { key: 'payable_account_id', label: 'Akun Hutang Usaha khusus', kind: 'select', placeholder: 'Default dari Pemetaan Akun', remoteOptions: { endpoint: '/master-data/chart-of-accounts', valueKey: 'id', params: { is_active: true, account_type: 'liability' } } },
+        ],
+      },
     ],
     actions: [],
   },
@@ -243,7 +252,15 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
     editPermission: 'products.edit',
     sections: [
       { title: 'Product Details', fields: [{ key: 'product_code', label: 'Product Code', required: true }, { key: 'product_name', label: 'Product Name', required: true }, { key: 'product_type', label: 'Type', kind: 'select', options: productTypeOptions }, { key: 'product_category_id', label: 'Category ID', kind: 'number' }, { key: 'unit_id', label: 'Unit ID', kind: 'number' }, { key: 'is_stock_item', label: 'Stock Item', kind: 'checkbox' }, { key: 'is_active', label: 'Active', kind: 'checkbox' }] },
-      { title: 'Accounting', fields: [{ key: 'sales_account_id', label: 'Sales Account ID', kind: 'number' }, { key: 'purchase_account_id', label: 'Purchase Account ID', kind: 'number' }, { key: 'inventory_account_id', label: 'Inventory Account ID', kind: 'number' }, { key: 'cogs_account_id', label: 'COGS Account ID', kind: 'number' }] },
+      {
+        title: 'Accounting',
+        fields: [
+          { key: 'sales_account_id', label: 'Sales Account', kind: 'select', placeholder: 'Default dari Pemetaan Akun', remoteOptions: { endpoint: '/master-data/chart-of-accounts', valueKey: 'id', params: { is_active: true, account_type: 'revenue' } } },
+          { key: 'purchase_account_id', label: 'Purchase Account', kind: 'select', placeholder: 'Pilih akun pembelian', remoteOptions: { endpoint: '/master-data/chart-of-accounts', valueKey: 'id', params: { is_active: true, account_type: 'expense' } } },
+          { key: 'inventory_account_id', label: 'Inventory Account', kind: 'select', placeholder: 'Pilih akun persediaan', remoteOptions: { endpoint: '/master-data/chart-of-accounts', valueKey: 'id', params: { is_active: true, account_type: 'asset' } } },
+          { key: 'cogs_account_id', label: 'COGS Account', kind: 'select', placeholder: 'Pilih akun HPP', remoteOptions: { endpoint: '/master-data/chart-of-accounts', valueKey: 'id', params: { is_active: true, account_type: 'expense' } } },
+        ],
+      },
     ],
     actions: [],
   },

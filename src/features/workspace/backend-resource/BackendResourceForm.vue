@@ -280,6 +280,7 @@ function fieldWrapperClass(field: FormFieldConfig) {
 
 function optionLabel(row: Record<string, unknown>, key?: string) {
   if (key && row[key] != null) return String(row[key])
+  if (row.account_code != null && row.account_name != null) return `${String(row.account_code)} · ${String(row.account_name)}`
   return String(row.name ?? row.label ?? row.code ?? row.id ?? '')
 }
 
@@ -515,6 +516,13 @@ function payload(values: Record<string, unknown>) {
     result.is_supplier = contactType === 'supplier'
     result.is_employee = contactType === 'employee'
     result.payment_term_id = result.payment_term_id === '' ? null : result.payment_term_id
+    result.receivable_account_id = result.receivable_account_id === '' ? null : result.receivable_account_id
+    result.payable_account_id = result.payable_account_id === '' ? null : result.payable_account_id
+  }
+  if (props.config.endpoint === '/master-data/products') {
+    for (const key of ['sales_account_id', 'purchase_account_id', 'inventory_account_id', 'cogs_account_id']) {
+      result[key] = result[key] === '' ? null : result[key]
+    }
   }
   if (props.config.lineItems) {
     const payloadLines = filledLineItems()
@@ -831,7 +839,7 @@ function saveAndCloseFromDialog() {
                   v-else-if="field.kind === 'select'"
                   :name="field.key"
                   :label="field.label"
-                  :placeholder="compactForm ? 'Pilih...' : undefined"
+                  :placeholder="field.placeholder ?? (compactForm ? 'Pilih...' : undefined)"
                   :options="field.remoteOptions ? (remoteSelectOptions[field.key] ?? []) : (field.options ?? [])"
                   :disabled="fieldReadonly(field)"
                   :required="field.required"

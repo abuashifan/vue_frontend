@@ -4,6 +4,7 @@ import { ArrowRight, Check, FileText, History, Info, ListTree, Search } from 'lu
 
 import FormDateInput from '@/components/form/FormDateInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import ConfirmDialog from '@/components/dialog/ConfirmDialog.vue'
 import VoidTransactionDialog from '@/components/dialog/VoidTransactionDialog.vue'
 import SourceDocumentPickerModal from '@/components/transaction-form/SourceDocumentPickerModal.vue'
 import TransactionActionBar from '@/components/transaction-form/TransactionActionBar.vue'
@@ -65,6 +66,14 @@ const applyingDueDate = ref(false)
 const workflowSettings = ref<CompanyWorkflowSettings | null>(null)
 const workflowError = ref<string | null>(null)
 const submitMode = ref<'submit' | 'next' | null>(null)
+const confirmDialog = ref<{
+  title: string
+  message: string
+  confirmLabel?: string
+  cancelLabel?: string
+  danger?: boolean
+} | null>(null)
+let confirmResolver: ((confirmed: boolean) => void) | null = null
 useTransactionTotals(tx.form, { priceField: props.config.lineProduct?.priceField })
 
 const partnerName =
@@ -141,7 +150,15 @@ watch(
         sourceType,
         partnerId: String(partnerId),
       })
-      if (availability.available && window.confirm(`Pelanggan/Vendor ini memiliki ${option.label}. Apakah Anda ingin menggunakan dokumen tersebut?`)) {
+      const shouldUseSource = availability.available
+        ? await askConfirmation({
+          title: `${option.label} tersedia`,
+          message: `Pelanggan/Vendor ini memiliki ${option.label}. Apakah Anda ingin menggunakan dokumen tersebut untuk mengisi form ini?`,
+          confirmLabel: 'Gunakan Dokumen',
+          cancelLabel: 'Lewati',
+        })
+        : false
+      if (shouldUseSource) {
         activeSourceKey.value = option.key
         sourcePickerOpen.value = true
       }
@@ -185,6 +202,31 @@ const formTabs = [
   { key: 'details', label: 'Rincian' },
   { key: 'more', label: 'Informasi Lainnya' },
 ] as const
+
+function askConfirmation(options: {
+  title: string
+  message: string
+  confirmLabel?: string
+  cancelLabel?: string
+  danger?: boolean
+}) {
+  if (confirmResolver) {
+    confirmResolver(false)
+    confirmResolver = null
+  }
+  confirmDialog.value = options
+  return new Promise<boolean>((resolve) => {
+    confirmResolver = resolve
+  })
+}
+
+function resolveConfirmation(confirmed: boolean) {
+  if (confirmResolver) {
+    confirmResolver(confirmed)
+    confirmResolver = null
+  }
+  confirmDialog.value = null
+}
 
 function todayDateValue() {
   const now = new Date()
@@ -418,7 +460,16 @@ async function runLifecycleAction(action: TransactionActionConfig, payload?: unk
     voidDialogOpen.value = true
     return
   }
-  if (action.requiresConfirm && action.key !== 'void' && !window.confirm(action.confirmMessage ?? `Confirm ${action.label}?`)) return
+  if (action.requiresConfirm && action.key !== 'void') {
+    const confirmed = await askConfirmation({
+      title: action.label,
+      message: action.confirmMessage ?? `Lanjutkan proses ${action.label} untuk dokumen ini?`,
+      confirmLabel: action.label,
+      cancelLabel: 'Batal',
+      danger: action.variant === 'danger',
+    })
+    if (!confirmed) return
+  }
   if (await actions.runAction(action.key, payload)) {
     voidDialogOpen.value = false
     await tx.load()
@@ -744,6 +795,16 @@ function applySourceDocument(document: SourceDocument) {
       :transaction-number="formTitle"
       @close="voidDialogOpen = false"
       @confirm="confirmVoid"
+    />
+    <ConfirmDialog
+      :open="Boolean(confirmDialog)"
+      :title="confirmDialog?.title ?? ''"
+      :message="confirmDialog?.message ?? ''"
+      :confirm-label="confirmDialog?.confirmLabel"
+      :cancel-label="confirmDialog?.cancelLabel"
+      :danger="confirmDialog?.danger ?? false"
+      @close="resolveConfirmation(false)"
+      @confirm="resolveConfirmation(true)"
     />
     <SourceDocumentPickerModal
       v-if="activeSourceOption"
