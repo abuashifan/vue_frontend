@@ -516,8 +516,8 @@ function payload(values: Record<string, unknown>) {
     result.is_supplier = contactType === 'supplier'
     result.is_employee = contactType === 'employee'
     result.payment_term_id = result.payment_term_id === '' ? null : result.payment_term_id
-    result.receivable_account_id = result.receivable_account_id === '' ? null : result.receivable_account_id
-    result.payable_account_id = result.payable_account_id === '' ? null : result.payable_account_id
+    delete result.receivable_account_id
+    delete result.payable_account_id
   }
   if (props.config.endpoint === '/master-data/products') {
     for (const key of ['sales_account_id', 'purchase_account_id', 'inventory_account_id', 'cogs_account_id']) {

@@ -260,6 +260,11 @@ export function useTransactionForm(options: {
     if (Object.prototype.hasOwnProperty.call(payload, 'payment_term_id') && payload.payment_term_id === '') {
       payload.payment_term_id = null
     }
+    for (const accountField of ['ar_account_id', 'ap_account_id']) {
+      if (Object.prototype.hasOwnProperty.call(payload, accountField) && payload[accountField] === '') {
+        payload[accountField] = null
+      }
+    }
 
     if (Array.isArray(payload.lines)) {
       const totals = calculateTransactionTotals(payload.lines as Record<string, unknown>[], {

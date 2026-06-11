@@ -191,15 +191,6 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
           { key: 'notes', label: 'Catatan', kind: 'textarea', span: 3, rows: 2 },
         ],
       },
-      {
-        title: 'Akun Akuntansi',
-        description: 'Kosongkan jika ingin memakai akun default dari Pemetaan Akun.',
-        cols: 2,
-        fields: [
-          { key: 'receivable_account_id', label: 'Akun Piutang Usaha khusus', kind: 'select', placeholder: 'Default dari Pemetaan Akun', remoteOptions: { endpoint: '/master-data/chart-of-accounts', valueKey: 'id', params: { is_active: true, account_type: 'asset' } } },
-          { key: 'payable_account_id', label: 'Akun Hutang Usaha khusus', kind: 'select', placeholder: 'Default dari Pemetaan Akun', remoteOptions: { endpoint: '/master-data/chart-of-accounts', valueKey: 'id', params: { is_active: true, account_type: 'liability' } } },
-        ],
-      },
     ],
     actions: [],
   },
@@ -618,7 +609,9 @@ export function formSchema(config: ResourceFormConfig) {
           ? z.coerce.number().nullable().optional()
           : field.kind === 'checkbox'
             ? z.boolean().optional()
-            : z.string().nullable().optional()
+            : field.kind === 'select' && field.remoteOptions
+              ? z.union([z.string(), z.number()]).nullable().optional()
+              : z.string().nullable().optional()
       }
     }
   }

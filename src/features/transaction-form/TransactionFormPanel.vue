@@ -8,6 +8,7 @@ import ConfirmDialog from '@/components/dialog/ConfirmDialog.vue'
 import VoidTransactionDialog from '@/components/dialog/VoidTransactionDialog.vue'
 import SourceDocumentPickerModal from '@/components/transaction-form/SourceDocumentPickerModal.vue'
 import TransactionActionBar from '@/components/transaction-form/TransactionActionBar.vue'
+import TransactionAccountSelector from '@/components/transaction-form/TransactionAccountSelector.vue'
 import TransactionCashBankAmountFields from '@/components/transaction-form/TransactionCashBankAmountFields.vue'
 import TransactionFormSection from '@/components/transaction-form/TransactionFormSection.vue'
 import TransactionFormShell from '@/components/transaction-form/TransactionFormShell.vue'
@@ -97,6 +98,11 @@ const supportsVendorDepositMatching = computed(() =>
   props.config.documentType === 'purchase.payments' || props.config.documentType === 'purchase.bills',
 )
 const vendorDepositMatchingMode = computed(() => props.config.documentType === 'purchase.payments' ? 'payment' : 'bill')
+const supportsReceivableAccount = computed(() => props.config.documentType === 'sales.invoices')
+const supportsPayableAccount = computed(() => props.config.documentType === 'purchase.bills')
+const supportsControlAccount = computed(() => supportsReceivableAccount.value || supportsPayableAccount.value)
+const receivableAccountParams = { is_active: true, account_type: 'asset' }
+const payableAccountParams = { is_active: true, account_type: 'liability' }
 
 const supportsInternalNotes = computed(() => Object.prototype.hasOwnProperty.call(tx.form.values, 'internal_notes'))
 const supportsValidUntil = computed(() => Object.prototype.hasOwnProperty.call(tx.form.values, 'valid_until'))
@@ -766,6 +772,27 @@ function applySourceDocument(document: SourceDocument) {
 
             <TransactionFormSection v-if="needsCashBankAndAmount" title="Payment">
               <TransactionCashBankAmountFields :readonly="tx.isReadonly.value" />
+            </TransactionFormSection>
+
+            <TransactionFormSection v-if="supportsControlAccount" title="Akun Kontrol">
+              <div class="grid min-w-0 gap-2 md:grid-cols-2">
+                <TransactionAccountSelector
+                  v-if="supportsReceivableAccount"
+                  name="ar_account_id"
+                  label="Akun Piutang Usaha"
+                  placeholder="Default dari Pemetaan Akun"
+                  :readonly="tx.isReadonly.value"
+                  :params="receivableAccountParams"
+                />
+                <TransactionAccountSelector
+                  v-if="supportsPayableAccount"
+                  name="ap_account_id"
+                  label="Akun Hutang Usaha"
+                  placeholder="Default dari Pemetaan Akun"
+                  :readonly="tx.isReadonly.value"
+                  :params="payableAccountParams"
+                />
+              </div>
             </TransactionFormSection>
 
             <div v-if="config.hasLines" class="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5">

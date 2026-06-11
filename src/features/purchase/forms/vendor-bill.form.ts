@@ -12,6 +12,7 @@ export type VendorBillValues = {
   due_date?: string | null
   purchase_order_id?: string | null
   goods_receipt_id?: string | null
+  ap_account_id?: string | number | null
   vendor_invoice_number?: string | null
   applied_vendor_deposit_amount?: number | string | null
   notes?: string | null
@@ -67,6 +68,7 @@ export const vendorBillFormConfig: TransactionFormConfig<VendorBillValues> = {
     bill_date: z.string().min(1),
     payment_term_id: z.union([z.string(), z.number()]).optional().nullable(),
     due_date: z.string().optional().nullable(),
+    ap_account_id: z.union([z.string(), z.number()]).optional().nullable(),
     lines: z.array(z.object({ description: z.string().min(1), quantity: z.coerce.number().gt(0), unit_price: z.coerce.number().min(0) })).min(1),
   }),
   makeEmptyValues() {
@@ -78,6 +80,7 @@ export const vendorBillFormConfig: TransactionFormConfig<VendorBillValues> = {
       due_date: null,
       purchase_order_id: null,
       goods_receipt_id: null,
+      ap_account_id: null,
       vendor_invoice_number: '',
       applied_vendor_deposit_amount: 0,
       notes: '',

@@ -223,6 +223,32 @@ function documentColumns(): ColumnDef<BackendResourceRow, unknown>[] {
   ]
 }
 
+function customerDepositColumns(): ColumnDef<BackendResourceRow, unknown>[] {
+  return [
+    { id: 'deposit_number', accessorFn: (row) => text(row, ['deposit_number', 'id']), header: 'No. Uang Muka', cell: ({ row }) => h('span', { class: 'font-bold text-slate-900' }, text(row.original, ['deposit_number', 'id'])) },
+    { id: 'deposit_date', accessorFn: (row) => text(row, ['deposit_date']), header: 'Tanggal', cell: ({ row }) => formatDisplayDate(text(row.original, ['deposit_date'])) },
+    { id: 'customer_number', accessorFn: (row) => text(row, ['customer_number', 'customer_code', 'contact_code']), header: 'No. Pelanggan', cell: ({ row }) => text(row.original, ['customer_number', 'customer_code', 'contact_code']) },
+    { id: 'customer_name', accessorFn: (row) => text(row, ['customer_name', 'customer']), header: 'Nama Pelanggan', cell: ({ row }) => text(row.original, ['customer_name', 'customer']) },
+    { id: 'cash_bank', accessorFn: (row) => text(row, ['cash_bank_account_name', 'cash_bank_name']), header: 'Cash/Bank', cell: ({ row }) => text(row.original, ['cash_bank_account_name', 'cash_bank_name']) },
+    { id: 'amount', accessorFn: (row) => Number(value(row, ['amount'])) || 0, header: 'Amount', cell: ({ row }) => h('span', { class: 'tabular-nums' }, money(row.original, ['amount'])) },
+    { id: 'remaining_amount', accessorFn: (row) => Number(value(row, ['remaining_amount'])) || 0, header: 'Sisa Uang Muka', cell: ({ row }) => h('span', { class: 'tabular-nums' }, money(row.original, ['remaining_amount'])) },
+    { id: 'status', accessorFn: (row) => statusText(row), header: 'Status', cell: ({ row }) => statusCell(row.original) },
+  ]
+}
+
+function vendorDepositColumns(): ColumnDef<BackendResourceRow, unknown>[] {
+  return [
+    { id: 'deposit_number', accessorFn: (row) => text(row, ['deposit_number', 'id']), header: 'No. Uang Muka', cell: ({ row }) => h('span', { class: 'font-bold text-slate-900' }, text(row.original, ['deposit_number', 'id'])) },
+    { id: 'deposit_date', accessorFn: (row) => text(row, ['deposit_date']), header: 'Tanggal', cell: ({ row }) => formatDisplayDate(text(row.original, ['deposit_date'])) },
+    { id: 'vendor_number', accessorFn: (row) => text(row, ['vendor_number', 'vendor_code', 'contact_code']), header: 'No. Pemasok', cell: ({ row }) => text(row.original, ['vendor_number', 'vendor_code', 'contact_code']) },
+    { id: 'vendor_name', accessorFn: (row) => text(row, ['vendor_name', 'vendor']), header: 'Nama Pemasok', cell: ({ row }) => text(row.original, ['vendor_name', 'vendor']) },
+    { id: 'cash_bank', accessorFn: (row) => text(row, ['cash_bank_account_name', 'cash_bank_name']), header: 'Cash/Bank', cell: ({ row }) => text(row.original, ['cash_bank_account_name', 'cash_bank_name']) },
+    { id: 'amount', accessorFn: (row) => Number(value(row, ['amount'])) || 0, header: 'Amount', cell: ({ row }) => h('span', { class: 'tabular-nums' }, money(row.original, ['amount'])) },
+    { id: 'remaining_amount', accessorFn: (row) => Number(value(row, ['remaining_amount'])) || 0, header: 'Sisa Uang Muka', cell: ({ row }) => h('span', { class: 'tabular-nums' }, money(row.original, ['remaining_amount'])) },
+    { id: 'status', accessorFn: (row) => statusText(row), header: 'Status', cell: ({ row }) => statusCell(row.original) },
+  ]
+}
+
 function reportColumns(): ColumnDef<BackendResourceRow, unknown>[] {
   return [
     { id: 'code', accessorFn: (row) => text(row, ['account_code', 'code', 'document_number', 'number', 'id']), header: 'Account / Reference', cell: ({ row }) => h('span', { class: 'font-bold text-slate-900' }, text(row.original, ['account_code', 'code', 'document_number', 'number', 'id'])) },
@@ -246,13 +272,16 @@ function inventoryColumns(): ColumnDef<BackendResourceRow, unknown>[] {
 function settingsColumns(): ColumnDef<BackendResourceRow, unknown>[] {
   return [
     { id: 'key', accessorFn: (row) => text(row, ['mapping_key', 'key', 'name', 'id']), header: 'Setting', cell: ({ row }) => h('span', { class: 'font-bold text-slate-900' }, text(row.original, ['mapping_key', 'key', 'name', 'id'])) },
-    { id: 'value', accessorFn: (row) => text(row, ['account_name', 'value', 'label', 'company_name', 'name']), header: 'Value', cell: ({ row }) => text(row.original, ['account_name', 'value', 'label', 'company_name', 'name']) },
+    { id: 'label', accessorFn: (row) => text(row, ['label', 'description']), header: 'Label', cell: ({ row }) => text(row.original, ['label', 'description']) },
+    { id: 'value', accessorFn: (row) => text(row, ['account_name', 'account_code', 'value', 'company_name', 'name']), header: 'Value', cell: ({ row }) => text(row.original, ['account_name', 'account_code', 'value', 'company_name', 'name']) },
     { id: 'status', accessorFn: (row) => statusText(row), header: 'Status', cell: ({ row }) => statusCell(row.original) },
   ]
 }
 
 function columnsFor(kind: BackendWorkspaceKind, href: string) {
   if (href === '/master-data/products') return productColumns()
+  if (href === '/sales/customer-deposits') return customerDepositColumns()
+  if (href === '/purchase/vendor-deposits') return vendorDepositColumns()
   if (kind === 'master-data') return masterDataColumns()
   if (kind === 'document') return documentColumns()
   if (kind === 'inventory') return inventoryColumns()

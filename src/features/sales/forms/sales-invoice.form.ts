@@ -13,6 +13,7 @@ export type SalesInvoiceValues = {
   sales_order_id?: string | null
   delivery_order_id?: string | null
   proforma_invoice_id?: string | null
+  ar_account_id?: string | number | null
   applied_down_payment_amount?: number | string | null
   notes?: string | null
   internal_notes?: string | null
@@ -68,6 +69,7 @@ export const salesInvoiceFormConfig: TransactionFormConfig<SalesInvoiceValues> =
     invoice_date: z.string().min(1),
     payment_term_id: z.union([z.string(), z.number()]).optional().nullable(),
     due_date: z.string().optional().nullable(),
+    ar_account_id: z.union([z.string(), z.number()]).optional().nullable(),
     lines: z.array(z.object({ description: z.string().min(1), quantity: z.coerce.number().gt(0), unit_price: z.coerce.number().min(0) })).min(1),
   }),
   makeEmptyValues() {
@@ -80,6 +82,7 @@ export const salesInvoiceFormConfig: TransactionFormConfig<SalesInvoiceValues> =
       sales_order_id: null,
       delivery_order_id: null,
       proforma_invoice_id: null,
+      ar_account_id: null,
       applied_down_payment_amount: 0,
       notes: '',
       internal_notes: '',
