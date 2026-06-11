@@ -17,6 +17,8 @@ import TransactionPartnerSelector from '@/components/transaction-form/Transactio
 import TransactionSearchableSelect from '@/components/transaction-form/TransactionSearchableSelect.vue'
 import TransactionTotalsPanel from '@/components/transaction-form/TransactionTotalsPanel.vue'
 import TransactionValidationSummary from '@/components/transaction-form/TransactionValidationSummary.vue'
+import CustomerDepositMatchingPanel from '@/features/sales/components/CustomerDepositMatchingPanel.vue'
+import VendorDepositMatchingPanel from '@/features/purchase/components/VendorDepositMatchingPanel.vue'
 
 import { useTransactionForm } from '@/composables/transaction-form/useTransactionForm'
 import { useTransactionActions } from '@/composables/transaction-form/useTransactionActions'
@@ -87,6 +89,14 @@ const needsCashBankAndAmount =
   props.config.documentType === 'purchase.vendor-deposits' ||
   props.config.documentType === 'sales.receipts' ||
   props.config.documentType === 'purchase.payments'
+const supportsDepositMatching = computed(() =>
+  props.config.documentType === 'sales.receipts' || props.config.documentType === 'sales.invoices',
+)
+const depositMatchingMode = computed(() => props.config.documentType === 'sales.receipts' ? 'receipt' : 'invoice')
+const supportsVendorDepositMatching = computed(() =>
+  props.config.documentType === 'purchase.payments' || props.config.documentType === 'purchase.bills',
+)
+const vendorDepositMatchingMode = computed(() => props.config.documentType === 'purchase.payments' ? 'payment' : 'bill')
 
 const supportsInternalNotes = computed(() => Object.prototype.hasOwnProperty.call(tx.form.values, 'internal_notes'))
 const supportsValidUntil = computed(() => Object.prototype.hasOwnProperty.call(tx.form.values, 'valid_until'))
@@ -106,6 +116,32 @@ const activeSourceOption = computed(() => sourceOptions.value.find((option) => o
 const activeSourceType = computed(() => activeSourceOption.value?.sourceType ?? activeSourceOption.value?.key.replace(/-/g, '_') ?? '')
 const currentPartnerId = computed<string | number | null>(() => {
   const value = partnerName ? tx.form.values[partnerName] : null
+  return typeof value === 'string' || typeof value === 'number' ? value : null
+})
+const currentSalesInvoiceId = computed<string | number | null>(() => {
+  if (props.config.documentType === 'sales.invoices') return entityId ?? null
+  const value = tx.form.values.sales_invoice_id
+  return typeof value === 'string' || typeof value === 'number' ? value : null
+})
+const currentSalesOrderId = computed<string | number | null>(() => {
+  const value = tx.form.values.sales_order_id
+  return typeof value === 'string' || typeof value === 'number' ? value : null
+})
+const currentInvoiceBalanceDue = computed<string | number | null>(() => {
+  const value = tx.form.values.balance_due
+  return typeof value === 'string' || typeof value === 'number' ? value : null
+})
+const currentVendorBillId = computed<string | number | null>(() => {
+  if (props.config.documentType === 'purchase.bills') return entityId ?? null
+  const value = tx.form.values.vendor_bill_id
+  return typeof value === 'string' || typeof value === 'number' ? value : null
+})
+const currentPurchaseOrderId = computed<string | number | null>(() => {
+  const value = tx.form.values.purchase_order_id
+  return typeof value === 'string' || typeof value === 'number' ? value : null
+})
+const currentBillBalanceDue = computed<string | number | null>(() => {
+  const value = tx.form.values.balance_due
   return typeof value === 'string' || typeof value === 'number' ? value : null
 })
 const paymentTermOptions = computed(() =>
@@ -477,6 +513,32 @@ async function runLifecycleAction(action: TransactionActionConfig, payload?: unk
   }
 }
 
+async function onCustomerDepositApplied(payload: { invoiceId: string | number; remainingBalance: number }) {
+  if (props.config.documentType === 'sales.receipts') {
+    tx.form.setFieldValue('sales_invoice_id', String(payload.invoiceId))
+    tx.form.setFieldValue('amount', payload.remainingBalance)
+    emit('notice', `Customer deposit applied. Receipt amount set to Rp ${new Intl.NumberFormat('id-ID').format(payload.remainingBalance)}.`)
+    return
+  }
+
+  await tx.load()
+  emit('changed')
+  emit('notice', 'Customer deposit applied to invoice.')
+}
+
+async function onVendorDepositApplied(payload: { billId: string | number; remainingBalance: number }) {
+  if (props.config.documentType === 'purchase.payments') {
+    tx.form.setFieldValue('vendor_bill_id', String(payload.billId))
+    tx.form.setFieldValue('amount', payload.remainingBalance)
+    emit('notice', `Vendor deposit applied. Payment amount set to Rp ${new Intl.NumberFormat('id-ID').format(payload.remainingBalance)}.`)
+    return
+  }
+
+  await tx.load()
+  emit('changed')
+  emit('notice', 'Vendor deposit applied to bill.')
+}
+
 async function confirmVoid(payload: { reason: string }) {
   const action = visibleLifecycleActions.value.find((item) => item.key === 'void')
   if (action) await runLifecycleAction(action, payload)
@@ -678,6 +740,30 @@ function applySourceDocument(document: SourceDocument) {
 
         <div class="min-h-0 min-w-0 overflow-hidden">
           <div v-show="activeFormTab === 'details'" class="h-full min-h-0 min-w-0 flex-col gap-1.5 overflow-hidden p-1.5" :class="activeFormTab === 'details' ? 'flex' : ''">
+            <CustomerDepositMatchingPanel
+              v-if="supportsDepositMatching && currentPartnerId"
+              :customer-id="currentPartnerId"
+              :invoice-id="currentSalesInvoiceId"
+              :invoice-balance-due="currentInvoiceBalanceDue"
+              :sales-order-id="currentSalesOrderId"
+              :mode="depositMatchingMode"
+              :readonly="tx.isReadonly.value"
+              :document-status="tx.status.value ?? String(tx.form.values.status ?? '')"
+              @applied="onCustomerDepositApplied"
+            />
+
+            <VendorDepositMatchingPanel
+              v-if="supportsVendorDepositMatching && currentPartnerId"
+              :vendor-id="currentPartnerId"
+              :bill-id="currentVendorBillId"
+              :bill-balance-due="currentBillBalanceDue"
+              :purchase-order-id="currentPurchaseOrderId"
+              :mode="vendorDepositMatchingMode"
+              :readonly="tx.isReadonly.value"
+              :document-status="tx.status.value ?? String(tx.form.values.status ?? '')"
+              @applied="onVendorDepositApplied"
+            />
+
             <TransactionFormSection v-if="needsCashBankAndAmount" title="Payment">
               <TransactionCashBankAmountFields :readonly="tx.isReadonly.value" />
             </TransactionFormSection>

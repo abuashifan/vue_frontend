@@ -23,6 +23,8 @@ const totals = computed(() => ({
   debit: rows.value.reduce((sum, row) => sum + Number(row.debit ?? 0), 0),
   credit: rows.value.reduce((sum, row) => sum + Number(row.credit ?? 0), 0),
   balance: rows.value.reduce((sum, row) => sum + Number(row.balance ?? 0), 0),
+  unappliedDeposit: rows.value.reduce((sum, row) => sum + Number(row.unapplied_deposit_total ?? 0), 0),
+  netExposure: rows.value.reduce((sum, row) => sum + Number(row.net_vendor_exposure ?? row.balance ?? 0), 0),
 }))
 
 async function load() {
@@ -70,7 +72,13 @@ onMounted(load)
             Credit: {{ formatMoney(totals.credit) }}
           </span>
           <span class="inline-flex h-9 shrink-0 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-extrabold text-slate-600">
-            Balance: {{ formatMoney(totals.balance) }}
+            Official AP: {{ formatMoney(totals.balance) }}
+          </span>
+          <span class="inline-flex h-9 shrink-0 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-extrabold text-slate-600">
+            Unapplied Deposit: {{ formatMoney(totals.unappliedDeposit) }}
+          </span>
+          <span class="inline-flex h-9 shrink-0 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-extrabold text-slate-600">
+            Net Exposure: {{ formatMoney(totals.netExposure) }}
           </span>
         </div>
       </div>
@@ -84,7 +92,9 @@ onMounted(load)
               <th class="px-3 py-2">Vendor</th>
               <th class="px-3 py-2 text-right">Debit</th>
               <th class="px-3 py-2 text-right">Credit</th>
-              <th class="px-3 py-2 text-right">Balance</th>
+              <th class="px-3 py-2 text-right">Official AP</th>
+              <th class="px-3 py-2 text-right">Unapplied Deposit</th>
+              <th class="px-3 py-2 text-right">Net Exposure</th>
               <th class="sticky right-0 bg-slate-50 px-3 py-2 text-right shadow-[-12px_0_18px_-18px_rgba(15,23,42,0.35)]">Action</th>
             </tr>
           </thead>
@@ -96,7 +106,9 @@ onMounted(load)
               </td>
               <td class="px-3 py-2 text-right font-bold">{{ formatMoney(row.debit) }}</td>
               <td class="px-3 py-2 text-right font-bold">{{ formatMoney(row.credit) }}</td>
-              <td class="px-3 py-2 text-right font-black">{{ formatMoney(row.balance) }}</td>
+              <td class="px-3 py-2 text-right font-black">{{ formatMoney(row.official_ap_balance ?? row.balance) }}</td>
+              <td class="px-3 py-2 text-right font-bold text-slate-700">{{ formatMoney(row.unapplied_deposit_total ?? 0) }}</td>
+              <td class="px-3 py-2 text-right font-black">{{ formatMoney(row.net_vendor_exposure ?? row.balance) }}</td>
               <td class="sticky right-0 bg-white px-3 py-2 text-right shadow-[-12px_0_18px_-18px_rgba(15,23,42,0.35)]">
                 <RouterLink class="text-sm font-black text-[#1d81af] hover:underline" :to="`/purchase/ap/vendors/${row.vendor_id}/ledger`">
                   View ledger

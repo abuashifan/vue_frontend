@@ -13,6 +13,9 @@ export type LedgerMovement = {
   ar_account_id?: number | null
   ar_account_code?: string | null
   ar_account_name?: string | null
+  ap_account_id?: number | null
+  ap_account_code?: string | null
+  ap_account_name?: string | null
   source_type?: string
   source_id?: number
   customer_name?: string | null

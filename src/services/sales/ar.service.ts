@@ -26,6 +26,10 @@ export type ArCustomerSummaryRow = {
   debit: number
   credit: number
   balance: number
+  gross_ar_outstanding?: number
+  official_ar_balance?: number
+  unapplied_deposit_total?: number
+  net_customer_exposure?: number
   ar_accounts?: Array<{ account_id: number | null; account_code: string | null; account_name: string | null }>
 }
 

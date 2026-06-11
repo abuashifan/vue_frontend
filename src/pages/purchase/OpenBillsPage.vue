@@ -74,6 +74,7 @@ onMounted(load)
             <tr>
               <th class="px-3 py-2">Bill</th>
               <th class="px-3 py-2">Vendor</th>
+              <th class="px-3 py-2">AP Account</th>
               <th class="px-3 py-2">Due Date</th>
               <th class="px-3 py-2 text-right">Total</th>
               <th class="px-3 py-2 text-right">Paid/Returned</th>
@@ -89,6 +90,11 @@ onMounted(load)
                 <p class="text-xs font-semibold text-slate-500">{{ formatDate(row.bill_date) }}</p>
               </td>
               <td class="px-3 py-2">{{ row.vendor_name ?? '-' }}</td>
+              <td class="px-3 py-2">
+                <span class="inline-flex max-w-[190px] items-center truncate rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-600" :title="`${row.ap_account_code ?? ''} ${row.ap_account_name ?? ''}`.trim() || '-'">
+                  {{ row.ap_account_code ? `${row.ap_account_code} · ${row.ap_account_name ?? '-'}` : '-' }}
+                </span>
+              </td>
               <td class="px-3 py-2">{{ formatDate(row.due_date) }}</td>
               <td class="px-3 py-2 text-right font-bold">{{ formatMoney(row.grand_total) }}</td>
               <td class="px-3 py-2 text-right font-bold">{{ formatMoney(row.paid_amount + row.returned_amount) }}</td>

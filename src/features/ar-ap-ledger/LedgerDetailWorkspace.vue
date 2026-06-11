@@ -56,6 +56,7 @@ const totals = computed(() => ledgerTotals(rows.value, isAr.value ? 'debit-minus
 const debitLabel = computed(() => (isAr.value ? 'Receivable Increase' : 'Payable Decrease'))
 const creditLabel = computed(() => (isAr.value ? 'Receivable Decrease' : 'Payable Increase'))
 const balanceLabel = computed(() => (isAr.value ? 'AR Balance' : 'AP Balance'))
+const accountLabel = computed(() => (isAr.value ? 'AR Account' : 'AP Account'))
 
 async function fetchLedger() {
   if (!Number.isFinite(routeId.value) || routeId.value <= 0) {
@@ -160,7 +161,7 @@ onMounted(fetchLedger)
             <tr>
               <th class="px-4 py-3">Date</th>
               <th class="px-4 py-3">Document</th>
-              <th v-if="isAr" class="px-4 py-3">AR Account</th>
+              <th class="px-4 py-3">{{ accountLabel }}</th>
               <th class="px-4 py-3">Description</th>
               <th class="px-4 py-3 text-right">Debit</th>
               <th class="px-4 py-3 text-right">Credit</th>
@@ -174,9 +175,20 @@ onMounted(fetchLedger)
                 <p class="font-black text-slate-900">{{ row.document_number ?? '-' }}</p>
                 <p class="text-xs font-semibold text-slate-500">{{ documentLabel(row.document_type) }}</p>
               </td>
-              <td v-if="isAr" class="px-4 py-3">
-                <span class="inline-flex max-w-[190px] items-center truncate rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-600" :title="`${row.ar_account_code ?? ''} ${row.ar_account_name ?? ''}`.trim() || '-'">
-                  {{ row.ar_account_code ? `${row.ar_account_code} · ${row.ar_account_name ?? '-'}` : '-' }}
+              <td class="px-4 py-3">
+                <span
+                  class="inline-flex max-w-[190px] items-center truncate rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-600"
+                  :title="isAr ? `${row.ar_account_code ?? ''} ${row.ar_account_name ?? ''}`.trim() || '-' : `${row.ap_account_code ?? ''} ${row.ap_account_name ?? ''}`.trim() || '-'"
+                >
+                  {{
+                    isAr
+                      ? row.ar_account_code
+                        ? `${row.ar_account_code} · ${row.ar_account_name ?? '-'}`
+                        : '-'
+                      : row.ap_account_code
+                        ? `${row.ap_account_code} · ${row.ap_account_name ?? '-'}`
+                        : '-'
+                  }}
                 </span>
               </td>
               <td class="px-4 py-3 text-slate-600">{{ row.description ?? '-' }}</td>

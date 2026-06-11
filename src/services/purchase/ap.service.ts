@@ -13,6 +13,9 @@ export type ApLedgerMovement = {
   debit: number
   credit: number
   balance: number
+  ap_account_id?: number | null
+  ap_account_code?: string | null
+  ap_account_name?: string | null
   source_type?: string
   source_id?: number
 }
@@ -23,6 +26,11 @@ export type ApVendorSummaryRow = {
   debit: number
   credit: number
   balance: number
+  gross_ap_outstanding?: number
+  official_ap_balance?: number
+  unapplied_deposit_total?: number
+  net_vendor_exposure?: number
+  ap_accounts?: Array<{ account_id: number; account_code?: string | null; account_name?: string | null }>
 }
 
 export type ApOpenBillRow = {
@@ -37,6 +45,9 @@ export type ApOpenBillRow = {
   returned_amount: number
   balance_due: number
   status: string
+  ap_account_id?: number | null
+  ap_account_code?: string | null
+  ap_account_name?: string | null
 }
 
 export type ApLedgerDetail = {
