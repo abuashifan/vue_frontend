@@ -96,7 +96,6 @@ const FIELD_LABELS: Record<string, string> = {
   delivery_date: 'Delivery Date',
   proforma_date: 'Proforma Date',
   invoice_date: 'Invoice Date',
-  billing_date: 'Billing Date',
   return_date: 'Return Date',
   request_date: 'Request Date',
   receipt_date: 'Receipt Date',

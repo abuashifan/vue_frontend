@@ -285,13 +285,22 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
     actions: [],
   },
   '/settings/account-mappings': {
-    title: 'Account Mapping',
+    title: 'Pemetaan Akun',
     endpoint: '/master-data/account-mappings',
     hideAudit: true,
     numberKeys: ['mapping_key', 'id'],
     hasShow: false,
     editPermission: 'settings.company.edit',
-    sections: [{ title: 'Mapping Details', fields: [{ key: 'mapping_key', label: 'Mapping Key', readonly: true }, { key: 'module', label: 'Module', readonly: true }, { key: 'account_id', label: 'Account ID', kind: 'number', required: true }, { key: 'is_active', label: 'Active', kind: 'checkbox' }] }],
+    sections: [
+      {
+        title: 'Pemetaan Akun',
+        fields: [
+          { key: 'label', label: 'Akun Standar', readonly: true },
+          { key: 'mapping_key', label: 'Mapping Key', readonly: true },
+          { key: 'account_id', label: 'Akun', kind: 'select', required: true, remoteOptions: { endpoint: '/master-data/chart-of-accounts', valueKey: 'id', params: { is_active: true } } },
+        ],
+      },
+    ],
     actions: [],
   },
   '/sales/quotations': {
@@ -357,15 +366,6 @@ export const backendResourceFormConfigs: Record<string, ResourceFormConfig> = {
     sections: [{ title: 'Main Information', fields: [{ key: 'customer_id', label: 'Customer ID', kind: 'number', required: true }, { key: 'invoice_date', label: 'Invoice Date', kind: 'date', required: true }, { key: 'due_date', label: 'Due Date', kind: 'date' }, { key: 'sales_order_id', label: 'Sales Order ID', kind: 'number' }, { key: 'delivery_order_id', label: 'Delivery Order ID', kind: 'number' }, { key: 'applied_down_payment_amount', label: 'Applied Customer Deposit', kind: 'money' }, ...commonCommercialFields] }, noteSection()],
     lineItems: commercialLine('lines', 'Invoice Lines'),
     actions: salesActions('sales.invoices'),
-  },
-  '/sales/billings': {
-    title: 'Billing Invoice',
-    endpoint: '/sales/billings',
-    numberKeys: ['billing_number', 'invoice_number', 'id'],
-    dateKey: 'billing_date',
-    createPermission: 'sales.billings.create',
-    sections: [{ title: 'Main Information', fields: [{ key: 'sales_invoice_id', label: 'Sales Invoice ID', kind: 'number', required: true }, { key: 'billing_date', label: 'Billing Date', kind: 'date', required: true }, { key: 'notes', label: 'Notes', kind: 'textarea' }] }],
-    actions: [{ key: 'issue', label: 'Issue', endpointSuffix: 'issue', method: 'patch', permission: 'sales.billings.issue', visibleStatuses: ['draft'], variant: 'primary' }, ...cancelActions('sales.billings')],
   },
   '/sales/customer-deposits': {
     title: 'Customer Deposit',

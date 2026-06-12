@@ -66,7 +66,6 @@ const capabilities: Record<string, ResourceCapability> = {
   '/sales/delivery-orders': { ...remoteList, kind: 'document', createPermission: 'sales.delivery_orders.create', editPermission: 'sales.delivery_orders.edit', hasDetail: true, dateFilter: true, statusFilter: true },
   '/sales/proformas': { ...remoteList, kind: 'document', createPermission: 'sales.proformas.create', editPermission: 'sales.proformas.edit', hasDetail: true, dateFilter: true, statusFilter: true },
   '/sales/invoices': { ...remoteList, kind: 'document', createPermission: 'sales.invoices.create', editPermission: 'sales.invoices.edit', hasDetail: true, dateFilter: true, statusFilter: true },
-  '/sales/billings': { ...remoteList, kind: 'document', createPermission: 'sales.billings.create', hasDetail: true, dateFilter: true, statusFilter: true },
   '/sales/customer-deposits': { ...remoteList, kind: 'document', createPermission: 'sales.deposits.create', hasDetail: true, dateFilter: true, statusFilter: true },
   '/sales/receipts': { ...remoteList, kind: 'document', createPermission: 'sales.receipts.create', hasDetail: true, dateFilter: true, statusFilter: true },
   '/sales/returns': { ...remoteList, kind: 'document', createPermission: 'sales.returns.create', hasDetail: true, dateFilter: true, statusFilter: true },
@@ -199,7 +198,6 @@ const documentDateFields = [
   'order_date',
   'delivery_date',
   'invoice_date',
-  'billing_date',
   'return_date',
   'receipt_date',
   'request_date',
@@ -215,7 +213,7 @@ const documentDateFields = [
 
 function documentColumns(): ColumnDef<BackendResourceRow, unknown>[] {
   return [
-    { id: 'number', accessorFn: (row) => text(row, ['document_number', 'number', 'quotation_number', 'order_number', 'invoice_number', 'billing_number', 'receipt_number', 'return_number', 'deposit_number', 'transfer_number', 'id']), header: 'Number', cell: ({ row }) => h('span', { class: 'font-bold text-slate-900' }, text(row.original, ['document_number', 'number', 'quotation_number', 'order_number', 'invoice_number', 'billing_number', 'receipt_number', 'return_number', 'deposit_number', 'transfer_number', 'id'])) },
+    { id: 'number', accessorFn: (row) => text(row, ['document_number', 'number', 'quotation_number', 'order_number', 'invoice_number', 'receipt_number', 'return_number', 'deposit_number', 'transfer_number', 'id']), header: 'Number', cell: ({ row }) => h('span', { class: 'font-bold text-slate-900' }, text(row.original, ['document_number', 'number', 'quotation_number', 'order_number', 'invoice_number', 'receipt_number', 'return_number', 'deposit_number', 'transfer_number', 'id'])) },
     { id: 'date', accessorFn: (row) => text(row, documentDateFields), header: 'Date', cell: ({ row }) => formatDisplayDate(text(row.original, documentDateFields)) },
     { id: 'party', accessorFn: (row) => text(row, ['customer_name', 'vendor_name', 'contact_name', 'customer', 'vendor', 'contact']), header: 'Customer / Vendor', cell: ({ row }) => text(row.original, ['customer_name', 'vendor_name', 'contact_name', 'customer', 'vendor', 'contact']) },
     { id: 'status', accessorFn: (row) => statusText(row), header: 'Status', cell: ({ row }) => statusCell(row.original) },
@@ -271,9 +269,11 @@ function inventoryColumns(): ColumnDef<BackendResourceRow, unknown>[] {
 
 function settingsColumns(): ColumnDef<BackendResourceRow, unknown>[] {
   return [
-    { id: 'key', accessorFn: (row) => text(row, ['mapping_key', 'key', 'name', 'id']), header: 'Setting', cell: ({ row }) => h('span', { class: 'font-bold text-slate-900' }, text(row.original, ['mapping_key', 'key', 'name', 'id'])) },
-    { id: 'label', accessorFn: (row) => text(row, ['label', 'description']), header: 'Label', cell: ({ row }) => text(row.original, ['label', 'description']) },
-    { id: 'value', accessorFn: (row) => text(row, ['account_name', 'account_code', 'value', 'company_name', 'name']), header: 'Value', cell: ({ row }) => text(row.original, ['account_name', 'account_code', 'value', 'company_name', 'name']) },
+    { id: 'section', accessorFn: (row) => text(row, ['settings_section', 'module']), header: 'Kategori', cell: ({ row }) => text(row.original, ['settings_section', 'module']) },
+    { id: 'label', accessorFn: (row) => text(row, ['label', 'mapping_key']), header: 'Akun Standar', cell: ({ row }) => h('span', { class: 'font-bold text-slate-900' }, text(row.original, ['label', 'mapping_key'])) },
+    { id: 'key', accessorFn: (row) => text(row, ['mapping_key', 'key', 'id']), header: 'Key', cell: ({ row }) => text(row.original, ['mapping_key', 'key', 'id']) },
+    { id: 'account_code', accessorFn: (row) => text(row, ['account_code']), header: 'Kode Akun', cell: ({ row }) => h('span', { class: 'tabular-nums' }, text(row.original, ['account_code'])) },
+    { id: 'account_name', accessorFn: (row) => text(row, ['account_name', 'value', 'company_name', 'name']), header: 'Nama Akun', cell: ({ row }) => text(row.original, ['account_name', 'value', 'company_name', 'name']) },
     { id: 'status', accessorFn: (row) => statusText(row), header: 'Status', cell: ({ row }) => statusCell(row.original) },
   ]
 }

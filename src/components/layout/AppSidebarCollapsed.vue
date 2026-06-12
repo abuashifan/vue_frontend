@@ -86,7 +86,6 @@ const cardIconByItemId: Record<string, Component> = {
   'delivery-orders': Truck,
   'proforma-invoices': ReceiptText,
   'sales-invoices': FileCheck2,
-  'billing-invoices': ScrollText,
   'customer-deposits': WalletCards,
   'sales-receipts': BadgeCheck,
   'sales-returns': PackageCheck,

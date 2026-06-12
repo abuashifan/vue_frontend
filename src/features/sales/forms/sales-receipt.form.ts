@@ -9,7 +9,6 @@ export type SalesReceiptValues = {
   receipt_date: string
   customer_id: string
   sales_invoice_id?: string | null
-  billing_invoice_id?: string | null
   cash_bank_account_id: string
   amount: number
   notes?: string | null
@@ -50,7 +49,6 @@ export const salesReceiptFormConfig: TransactionFormConfig<SalesReceiptValues> =
       receipt_date: '',
       customer_id: '',
       sales_invoice_id: null,
-      billing_invoice_id: null,
       cash_bank_account_id: '',
       amount: 0,
       notes: '',

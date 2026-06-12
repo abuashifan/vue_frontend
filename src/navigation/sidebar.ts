@@ -549,14 +549,6 @@ export const sidebarMenuGroups: SidebarMenuGroup[] = [
       ),
       item(
         'sales',
-        'billing-invoices',
-        'Tagihan Penjualan',
-        '/sales/billings',
-        '/sales/billings',
-        'sales.billings.view',
-      ),
-      item(
-        'sales',
         'customer-deposits',
         'Uang Muka Pelanggan',
         '/sales/customer-deposits',

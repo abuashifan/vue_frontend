@@ -72,7 +72,6 @@ function mapRow(row: unknown): TransactionListRow {
   const number =
     r.document_number ??
     r.invoice_number ??
-    r.billing_number ??
     r.order_number ??
     r.quotation_number ??
     r.return_number ??
@@ -86,7 +85,6 @@ function mapRow(row: unknown): TransactionListRow {
   const date =
     r.document_date ??
     r.invoice_date ??
-    r.billing_date ??
     r.order_date ??
     r.quotation_date ??
     r.delivery_date ??

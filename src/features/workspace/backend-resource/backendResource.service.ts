@@ -86,6 +86,8 @@ function extractPagination(payload: unknown, rowCount: number) {
 }
 
 function rowId(row: Record<string, unknown>, index: number) {
+  if (row.mapping_key != null && String(row.mapping_key) !== '') return String(row.mapping_key)
+
   for (const key of ['id', 'uuid', 'code', 'account_code', 'document_number', 'number', 'mapping_key']) {
     const value = row[key]
     if (value != null && String(value) !== '') return String(value)
@@ -94,14 +96,37 @@ function rowId(row: Record<string, unknown>, index: number) {
   return `row-${index + 1}`
 }
 
+function sortNumber(value: unknown, fallback: number) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function normalizeRows(endpoint: string, rows: BackendResourceRow[]) {
+  if (endpoint !== '/master-data/account-mappings') return rows
+
+  return rows
+    .filter((row) => row.visible_in_settings === true)
+    .sort((left, right) => {
+      const leftOrder = sortNumber(left.settings_order, 999)
+      const rightOrder = sortNumber(right.settings_order, 999)
+      if (leftOrder !== rightOrder) return leftOrder - rightOrder
+
+      const leftSection = String(left.settings_section ?? '')
+      const rightSection = String(right.settings_section ?? '')
+      if (leftSection !== rightSection) return leftSection.localeCompare(rightSection)
+
+      return String(left.mapping_key ?? '').localeCompare(String(right.mapping_key ?? ''))
+    })
+}
+
 export async function listBackendResource(endpoint: string, params: Record<string, unknown> = {}): Promise<BackendResourceListResult> {
   const response = await api.get<ApiResponse<unknown>>(endpoint, { params })
   const payload = unwrap(response.data)
 
-  const rows = extractRows(payload)
+  const rows = normalizeRows(endpoint, extractRows(payload)
     .map(asRecord)
     .filter((row): row is Record<string, unknown> => row != null)
-    .map((row, index) => ({ ...row, id: rowId(row, index) }) as BackendResourceRow)
+    .map((row, index) => ({ ...row, id: rowId(row, index) }) as BackendResourceRow))
 
   return { rows, pagination: extractPagination(payload, rows.length) }
 }

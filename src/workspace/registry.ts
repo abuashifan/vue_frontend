@@ -20,7 +20,6 @@ import SalesOrderFormPage from '@/pages/sales/SalesOrderFormPage.vue'
 import DeliveryOrderFormPage from '@/pages/sales/DeliveryOrderFormPage.vue'
 import ProformaInvoiceFormPage from '@/pages/sales/ProformaInvoiceFormPage.vue'
 import SalesInvoiceFormPage from '@/pages/sales/SalesInvoiceFormPage.vue'
-import BillingInvoiceFormPage from '@/pages/sales/BillingInvoiceFormPage.vue'
 import CustomerDepositFormPage from '@/pages/sales/CustomerDepositFormPage.vue'
 import SalesReceiptFormPage from '@/pages/sales/SalesReceiptFormPage.vue'
 import SalesReturnFormPage from '@/pages/sales/SalesReturnFormPage.vue'
@@ -73,7 +72,6 @@ export const workspaceRegistry: Record<string, Component> = {
   '/sales/delivery-orders': DeliveryOrderFormPage,
   '/sales/proformas': ProformaInvoiceFormPage,
   '/sales/invoices': SalesInvoiceFormPage,
-  '/sales/billings': BillingInvoiceFormPage,
   '/sales/customer-deposits': CustomerDepositFormPage,
   '/sales/receipts': SalesReceiptFormPage,
   '/sales/returns': SalesReturnFormPage,
